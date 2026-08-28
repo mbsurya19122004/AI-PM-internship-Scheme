@@ -1,0 +1,13 @@
+backend/target/
+__pycache__/
+*.py[cod]
+*.class
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+!.env.example

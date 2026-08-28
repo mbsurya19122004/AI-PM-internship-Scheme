@@ -37,6 +37,7 @@ Requirements:
 import argparse
 import csv
 import json
+import os
 import re
 import sys
 import difflib
@@ -228,31 +229,21 @@ def job_to_text_block(job: dict) -> str:
 # LLM scoring via Ollama
 # --------------------------------------------------------------------------- #
 
-PROMPT_TEMPLATE = """You are an expert technical recruiter. Compare the RESUME below \
-against the JOB LISTING and evaluate how good a fit the candidate is for this job.
+# Max chars to send to Ollama per text block (keeps prompts short)
+MAX_TEXT_CHARS = 2000
 
-Respond with ONLY a JSON object, no other text, no markdown fences, in exactly \
-this shape:
-{{"score": <integer 0-100>, "reason": "<one or two sentence justification>"}}
 
-Score meaning:
-- 90-100: excellent fit, candidate meets/exceeds nearly all qualifications
-- 70-89: strong fit, meets most core qualifications
-- 50-69: partial fit, meets some qualifications but has notable gaps
-- 20-49: weak fit, few relevant qualifications
-- 0-19: not a fit at all
+def _truncate(text: str, limit: int = MAX_TEXT_CHARS) -> str:
+    """Truncate text to limit chars, adding marker if cut."""
+    if len(text) <= limit:
+        return text
+    return text[:limit] + "...[truncated]"
 
-RESUME:
-\"\"\"
-{resume_text}
-\"\"\"
 
-JOB LISTING:
-\"\"\"
-{job_text}
-\"\"\"
+PROMPT_TEMPLATE = """Score resume vs job 0-100. Reply JSON only: {{"score":N,"reason":"short justification"}}
+Scores: 90+=excellent, 70-89=strong, 50-69=partial, 20-49=weak, 0-19=poor
 
-JSON response:"""
+RESUME:\n{resume_text}\n\nJOB:\n{job_text}"""
 
 
 class OllamaError(Exception):
@@ -313,26 +304,37 @@ def resolve_model(requested: str, host: str) -> str:
     return fallback
 
 
-def call_ollama(prompt: str, model: str, host: str, timeout: int = 120) -> str:
+OLLAMA_TIMEOUT = int(os.environ.get("OLLAMA_TIMEOUT", "300"))
+
+
+def call_ollama(prompt: str, model: str, host: str, timeout: int | None = None, retries: int = 2) -> str:
+    """Call Ollama with automatic retry on timeout."""
+    if timeout is None:
+        timeout = OLLAMA_TIMEOUT
     url = f"{host.rstrip('/')}/api/generate"
     payload = {"model": model, "prompt": prompt, "stream": False}
-    try:
-        resp = requests.post(url, json=payload, timeout=timeout)
-        resp.raise_for_status()
-    except requests.exceptions.ConnectionError as e:
-        raise OllamaError(
-            f"Could not connect to Ollama at {host}. Is it running? (`ollama serve`)"
-        ) from e
-    except requests.exceptions.Timeout as e:
-        raise OllamaError(f"Request to Ollama timed out after {timeout}s.") from e
-    except requests.exceptions.HTTPError as e:
-        raise OllamaError(f"Ollama returned an error for model '{model}': {e}") from e
 
-    try:
-        data = resp.json()
-    except ValueError as e:
-        raise OllamaError("Ollama returned a non-JSON response.") from e
-    return data.get("response", "")
+    last_error = None
+    for attempt in range(retries + 1):
+        try:
+            resp = requests.post(url, json=payload, timeout=timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("response", "")
+        except requests.exceptions.ConnectionError as e:
+            raise OllamaError(
+                f"Could not connect to Ollama at {host}. Is it running? (`ollama serve`)"
+            ) from e
+        except requests.exceptions.Timeout as e:
+            last_error = e
+            if attempt < retries:
+                print(f"  Warning: Ollama timeout on attempt {attempt + 1}/{retries + 1}, retrying...")
+                continue
+            raise OllamaError(f"Request to Ollama timed out after {timeout}s (after {retries + 1} attempts).") from e
+        except requests.exceptions.HTTPError as e:
+            raise OllamaError(f"Ollama returned an error for model '{model}': {e}") from e
+        except ValueError as e:
+            raise OllamaError("Ollama returned a non-JSON response.") from e
 
 
 def parse_score_response(raw: str) -> dict:
@@ -354,6 +356,9 @@ def parse_score_response(raw: str) -> dict:
         score = int(obj.get("score", 0))
         score = max(0, min(100, score))
         reason = str(obj.get("reason", "")).strip()
+        # Clean up any nested markdown fences in the reason
+        reason = re.sub(r"^```(?:json)?\s*", "", reason)
+        reason = re.sub(r"\s*```$", "", reason)
         return {"score": score, "reason": reason}
     except Exception:
         num_match = re.search(r"\b(\d{1,3})\b", raw or "")
@@ -364,8 +369,8 @@ def parse_score_response(raw: str) -> dict:
 def score_job(resume_text: str, job: dict, model: str, host: str) -> dict:
     """Score one job. Never raises — any failure becomes a 0 score with an explanation."""
     try:
-        job_text = job_to_text_block(job)
-        prompt = PROMPT_TEMPLATE.format(resume_text=resume_text, job_text=job_text)
+        job_text = _truncate(job_to_text_block(job), 1000)
+        prompt = PROMPT_TEMPLATE.format(resume_text=_truncate(resume_text), job_text=job_text)
         raw = call_ollama(prompt, model=model, host=host)
         result = parse_score_response(raw)
     except OllamaError as e:

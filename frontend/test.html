@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Console</title>
+</head>
+<body>
+
+<h1>Backend API Test Console</h1>
+
+<div>
+    <label>API URL:</label>
+    <input type="text" id="baseUrl" value="http://localhost:8080" size="40">
+    <button onclick="checkHealth()">Check Connection</button>
+    <span id="statusText">Not connected</span>
+</div>
+
+<hr>
+
+<!-- REGISTER -->
+<h3>1. Register</h3>
+<label>Name:</label> <input type="text" id="regName" ><br>
+<label>Email:</label> <input type="email" id="regEmail"><br>
+<label>Phone:</label> <input type="text" id="regPhone" ><br>
+<label>College:</label> <input type="text" id="regCollege" ><br>
+<label>Dept:</label> <input type="text" id="regDept" >
+<label>Year:</label> <input type="text" id="regYear" ><br>
+<label>Password:</label> <input type="password" id="regPass">
+<label>Confirm:</label> <input type="password" id="regPass2"><br>
+<button onclick="doRegister()">Register</button>
+<pre id="regRes"></pre>
+
+<hr>
+
+<!-- LOGIN -->
+<h3>2. Login</h3>
+<label>Email:</label> <input type="email" id="loginEmail">
+<label>Password:</label> <input type="password" id="loginPass">
+<button onclick="doLogin()">Login</button>
+<pre id="loginRes"></pre>
+<div id="tokens"></div>
+
+<hr>
+
+<!-- REFRESH -->
+<h3>3. Refresh Token</h3>
+<button onclick="doRefresh()">Refresh</button>
+<pre id="refreshRes"></pre>
+
+<hr>
+
+<!-- PROFILE -->
+<h3>4. My Profile</h3>
+<button onclick="doGetMe()">GET /me (with token)</button>
+<button onclick="doGetMeNoAuth()">GET /me (NO token - expect 401)</button>
+<pre id="meRes"></pre>
+
+<hr>
+
+<!-- UPLOAD -->
+<h3>5. Upload Resume</h3>
+<label>File:</label> <input type="file" id="resumeFile" accept=".pdf,.doc,.docx">
+<label>Description:</label> <input type="text" id="resumeDesc" placeholder="My main resume">
+<button onclick="doUploadResume()">Upload</button>
+<pre id="uploadRes"></pre>
+
+<hr>
+
+<!-- LIST -->
+<h3>6. List Resumes</h3>
+<button onclick="doListResumes()">List All</button>
+<pre id="listRes"></pre>
+
+<hr>
+
+<!-- ACTIVE -->
+<h3>7. Active Resume</h3>
+<button onclick="doGetActive()">Get Active</button>
+<pre id="activeRes"></pre>
+
+<hr>
+
+<!-- GET / ACTIVATE / DELETE / DOWNLOAD -->
+<h3>8. Resume by ID</h3>
+<label>ID:</label> <input type="number" id="resumeId" value="1">
+<button onclick="doGetResume()">Get</button>
+<button onclick="doActivateResume()">Activate</button>
+<button onclick="doDownloadResume()">Download</button>
+<button onclick="doDeleteResume()">Delete</button>
+<pre id="crudRes"></pre>
+
+<hr>
+
+<!-- INVALID FILE TEST -->
+<h3>9. Upload Invalid File (should reject)</h3>
+<button onclick="doUploadInvalid()">Upload fake .txt</button>
+<pre id="invalidRes"></pre>
+
+<hr>
+
+<!-- ML: ANALYZE RESUME -->
+<h3>10. LLM: Analyze Active Resume</h3>
+<p>Auto-fetches your active resume, sends it to the LLM for analysis.</p>
+<button onclick="doMlAnalyzeActive()">Analyze Active Resume with LLM</button>
+<pre id="mlAnalyzeRes"></pre>
+<hr>
+<h3>10b. LLM: Analyze Pasted Text</h3>
+<label>Or paste resume text manually:</label><br>
+<textarea id="mlResumeText" rows="6" cols="80" placeholder="Paste resume text here..."></textarea><br>
+<button onclick="doMlAnalyze()">Analyze with LLM</button>
+<pre id="mlAnalyzeRes2"></pre>
+
+<hr>
+
+<!-- ML: MATCH JOBS -->
+<h3>11. LLM: Match Jobs (upload PDF)</h3>
+<label>Resume PDF:</label> <input type="file" id="mlResumeFile" accept=".pdf">
+<label>Top N:</label> <input type="number" id="mlTopN" value="5" size="5">
+<button onclick="doMlMatch()">Match with LLM</button>
+<pre id="mlMatchRes"></pre>
+
+<hr>
+
+<!-- ML: HEALTH -->
+<h3>12. ML Service Health</h3>
+<button onclick="doMlHealth()">Check ML Service</button>
+<pre id="mlHealthRes"></pre>
+
+<hr>
+
+<!-- LOG -->
+<h3>Request Log</h3>
+<div id="log"></div>
+
+<script>
+let accessToken = '';
+let refreshToken = '';
+
+function base() {
+    return document.getElementById('baseUrl').value.replace(/\/+$/, '');
+}
+
+function v(id) {
+    return document.getElementById(id).value.trim();
+}
+
+function show(id, data) {
+    document.getElementById(id).textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+}
+
+function logEntry(method, url, status) {
+    const el = document.getElementById('log');
+    el.innerHTML += '<div>' + new Date().toLocaleTimeString() + ' ' + method + ' ' + url + ' → ' + status + '</div>';
+    el.scrollTop = el.scrollHeight;
+}
+
+async function api(method, url, body, isFormData, resultId) {
+    const opts = { method: method, headers: {} };
+    if (accessToken && !url.includes('/auth/login') && !url.includes('/auth/register') && !url.includes('/auth/refresh')) {
+        opts.headers['Authorization'] = 'Bearer ' + accessToken;
+    }
+    if (body && !isFormData) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
+    } else if (body) {
+        opts.body = body;
+    }
+    try {
+        const res = await fetch(base() + url, opts);
+        const text = await res.text();
+        let json;
+        try { json = JSON.parse(text); } catch (e) { json = text; }
+        logEntry(method, url, res.status);
+        show(resultId, json || text || 'HTTP ' + res.status + ' (empty)');
+        return json;
+    } catch (e) {
+        logEntry(method, url, 'ERR');
+        show(resultId, 'Error: ' + e.message);
+        return null;
+    }
+}
+
+async function checkHealth() {
+    try {
+        const res = await fetch(base() + '/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'x@x.com', password: 'x' })
+        });
+        document.getElementById('statusText').textContent = 'Connected (HTTP ' + res.status + ')';
+    } catch (e) {
+        document.getElementById('statusText').textContent = 'Failed: ' + e.message;
+    }
+}
+
+function setTokens(data) {
+    accessToken = data.accessToken;
+    refreshToken = data.refreshToken;
+    document.getElementById('tokens').innerHTML =
+        '<b>Access:</b> ' + accessToken + '<br><b>Refresh:</b> ' + refreshToken;
+}
+
+// AUTH
+async function doRegister() {
+    const data = await api('POST', '/api/auth/register', {
+        fullName: v('regName'), email: v('regEmail'), phoneNumber: v('regPhone'),
+        college: v('regCollege'), department: v('regDept'), graduationYear: v('regYear'),
+        password: v('regPass'), confirmPassword: v('regPass2')
+    }, false, 'regRes');
+    if (data && data.data && data.data.accessToken) setTokens(data.data);
+}
+
+async function doLogin() {
+    const data = await api('POST', '/api/auth/login', {
+        email: v('loginEmail'), password: v('loginPass')
+    }, false, 'loginRes');
+    if (data && data.data && data.data.accessToken) setTokens(data.data);
+}
+
+async function doRefresh() {
+    if (!refreshToken) { show('refreshRes', 'Login first'); return; }
+    const data = await api('POST', '/api/auth/refresh', { refreshToken: refreshToken }, false, 'refreshRes');
+    if (data && data.data && data.data.accessToken) setTokens(data.data);
+}
+
+async function doGetMe() {
+    await api('GET', '/api/auth/me', null, false, 'meRes');
+}
+
+async function doGetMeNoAuth() {
+    const saved = accessToken;
+    accessToken = '';
+    await api('GET', '/api/auth/me', null, false, 'meRes');
+    accessToken = saved;
+}
+
+// RESUMES
+async function doUploadResume() {
+    const file = document.getElementById('resumeFile').files[0];
+    if (!file) { show('uploadRes', 'Select a file first'); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('description', v('resumeDesc'));
+    const data = await api('POST', '/api/resumes/upload', fd, true, 'uploadRes');
+    if (data && data.data && data.data.id) document.getElementById('resumeId').value = data.data.id;
+}
+
+async function doListResumes() {
+    await api('GET', '/api/resumes', null, false, 'listRes');
+}
+
+async function doGetActive() {
+    await api('GET', '/api/resumes/active', null, false, 'activeRes');
+}
+
+async function doGetResume() {
+    const id = v('resumeId');
+    if (!id) return;
+    await api('GET', '/api/resumes/' + id, null, false, 'crudRes');
+}
+
+async function doActivateResume() {
+    const id = v('resumeId');
+    if (!id) return;
+    await api('PUT', '/api/resumes/' + id + '/activate', null, false, 'crudRes');
+}
+
+async function doDownloadResume() {
+    const id = v('resumeId');
+    if (!id) return;
+    try {
+        const res = await fetch(base() + '/api/resumes/' + id + '/download', {
+            headers: { 'Authorization': 'Bearer ' + accessToken }
+        });
+        logEntry('GET', '/api/resumes/' + id + '/download', res.status);
+        if (res.ok) {
+            const blob = await res.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'resume-' + id + '.pdf';
+            a.click();
+            show('crudRes', 'Downloaded ' + blob.size + ' bytes');
+        } else {
+            const t = await res.text();
+            show('crudRes', 'Failed: ' + t);
+        }
+    } catch (e) {
+        show('crudRes', 'Error: ' + e.message);
+    }
+}
+
+async function doDeleteResume() {
+    const id = v('resumeId');
+    if (!id) return;
+    await api('DELETE', '/api/resumes/' + id, null, false, 'crudRes');
+}
+
+async function doUploadInvalid() {
+    const file = new File(['not a pdf'], 'test.txt', { type: 'text/plain' });
+    const fd = new FormData();
+    fd.append('file', file);
+    await api('POST', '/api/resumes/upload', fd, true, 'invalidRes');
+}
+
+// ML ENDPOINTS (call ML service directly)
+async function doMlHealth() {
+    try {
+        const res = await fetch('http://localhost:8000/health');
+        const data = await res.json();
+        logEntry('GET', '/health (ML)', res.status);
+        show('mlHealthRes', data);
+    } catch (e) {
+        logEntry('GET', '/health (ML)', 'ERR');
+        show('mlHealthRes', 'Error: ' + e.message + ' - Is ML service running?');
+    }
+}
+
+async function doMlAnalyzeActive() {
+    show('mlAnalyzeRes', 'Fetching active resume...');
+    document.querySelector('button[onclick="doMlAnalyzeActive()"]').disabled = true;
+    document.querySelector('button[onclick="doMlAnalyzeActive()"]').textContent = 'Working... (2-3 min on CPU)';
+    try {
+        // 1. Get active resume metadata
+        const metaRes = await fetch(base() + '/api/resumes/active', {
+            headers: { 'Authorization': 'Bearer ' + accessToken }
+        });
+        const meta = await metaRes.json();
+        if (!meta.data) { show('mlAnalyzeRes', 'No active resume found. Upload and activate one first.'); return; }
+        const resumeId = meta.data.id;
+        const fileName = meta.data.originalFileName;
+        logEntry('GET', '/api/resumes/active', metaRes.status);
+
+        // 2. Download the resume file
+        const fileRes = await fetch(base() + '/api/resumes/' + resumeId + '/download', {
+            headers: { 'Authorization': 'Bearer ' + accessToken }
+        });
+        logEntry('GET', '/api/resumes/' + resumeId + '/download', fileRes.status);
+        if (!fileRes.ok) { show('mlAnalyzeRes', 'Failed to download resume'); return; }
+        const blob = await fileRes.blob();
+        const file = new File([blob], fileName, { type: blob.type || 'application/pdf' });
+
+        // 3. Send to ML service
+        const fd = new FormData();
+        fd.append('file', file);
+        const mlRes = await fetch('http://localhost:8000/match-jobs-file?top_n=10', {
+            method: 'POST',
+            body: fd
+        });
+        logEntry('POST', '/match-jobs-file (ML)', mlRes.status);
+        const data = await mlRes.json();
+        show('mlAnalyzeRes', data);
+    } catch (e) {
+        logEntry('ML', 'analyze-active', 'ERR');
+        show('mlAnalyzeRes', 'Error: ' + e.message);
+    } finally {
+        document.querySelector('button[onclick="doMlAnalyzeActive()"]').disabled = false;
+        document.querySelector('button[onclick="doMlAnalyzeActive()"]').textContent = 'Analyze Active Resume with LLM';
+    }
+}
+
+async function doMlAnalyze() {
+    const text = document.getElementById('mlResumeText').value.trim();
+    if (!text) { show('mlAnalyzeRes2', 'Paste resume text first'); return; }
+    try {
+        const res = await fetch('http://localhost:8000/analyze-resume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resume_text: text })
+        });
+        const data = await res.json();
+        logEntry('POST', '/analyze-resume (ML)', res.status);
+        show('mlAnalyzeRes2', data);
+    } catch (e) {
+        logEntry('POST', '/analyze-resume (ML)', 'ERR');
+        show('mlAnalyzeRes2', 'Error: ' + e.message);
+    }
+}
+
+async function doMlMatch() {
+    const file = document.getElementById('mlResumeFile').files[0];
+    if (!file) { show('mlMatchRes', 'Select a PDF first'); return; }
+    const topN = v('mlTopN') || '5';
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+        const res = await fetch('http://localhost:8000/match-jobs-file?top_n=' + topN, {
+            method: 'POST',
+            body: fd
+        });
+        const data = await res.json();
+        logEntry('POST', '/match-jobs-file (ML)', res.status);
+        show('mlMatchRes', data);
+    } catch (e) {
+        logEntry('POST', '/match-jobs-file (ML)', 'ERR');
+        show('mlMatchRes', 'Error: ' + e.message);
+    }
+}
+
+checkHealth();
+</script>
+</body>
+</html>
