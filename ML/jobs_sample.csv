@@ -1,0 +1,6 @@
+job title,job description,qualifications
+Backend Developer,Build and maintain REST APIs and services in Python and Go for a fintech platform.,3+ years Python; experience with PostgreSQL; familiarity with Docker and CI/CD
+Linux Systems Engineer,Maintain and automate Linux server fleets and internal desktop tooling.,Strong Linux/Bash skills; experience with GNOME/Wayland or Hyprland desktop environments a plus; C/C++ familiarity
+Frontend Engineer,Develop responsive web interfaces using React and TypeScript.,2+ years JavaScript/TypeScript; React experience; basic design sense
+Data Analyst,Analyze product usage data and build dashboards for stakeholders.,SQL proficiency; experience with pandas; Excel/BI tool experience
+Open Source Maintainer,Maintain and review contributions for a GNOME desktop application, mentor new contributors.,Prior contributions to GNOME or similar open-source project; C programming; Git workflow experience
