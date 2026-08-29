@@ -1,16 +1,16 @@
-# 🎯 Internship & Job Recommendation Platform
+# Internship & Job Recommendation Platform
 
-An AI-powered career recommendation platform designed to help students discover **internships and entry-level job opportunities that best match their skills, education, experience, and career interests**.
+An AI-powered career recommendation platform designed to help students discover **internships and entry-level job opportunities that best match their skills, education, experience, and career inter[...]
 
-Students can upload their resume, and the platform analyzes it using an AI-powered pipeline to understand their profile and recommend relevant opportunities based on their qualifications and skills.
+Students can upload their resume, and the platform analyzes it using an AI-powered pipeline to understand their profile and recommend relevant opportunities based on their qualifications and skills[...]
 
 The project is being developed as part of a **PM Internship Scheme-focused initiative**, with the goal of making internship discovery more personalized, accessible, and efficient for students.
 
 ---
 
-## 🚀 Project Overview
+## Project Overview
 
-Finding a suitable internship can be difficult for students because job platforms often provide thousands of listings without explaining **which opportunities are actually relevant to a particular student**.
+Finding a suitable internship can be difficult for students because job platforms often provide thousands of listings without explaining **which opportunities are actually relevant to a particular[...]
 
 Our platform addresses this problem by transforming a student's resume into a structured candidate profile and matching that profile against available internships and jobs.
 
@@ -29,7 +29,7 @@ The platform then produces a ranked list of opportunities that are most relevant
 
 ---
 
-# 🧠 How It Works
+# How It Works
 
 The platform follows an AI-driven recommendation pipeline:
 
@@ -67,9 +67,9 @@ The core idea is to convert unstructured resume information into meaningful cand
 
 ---
 
-# ✨ Key Features
+# Key Features
 
-## 📄 Resume-Based Recommendations
+## Resume-Based Recommendations
 
 Students can provide their resume as the primary source of information.
 
@@ -90,7 +90,7 @@ This information is transformed into a structured representation of the candidat
 
 ---
 
-## 🤖 AI-Powered Resume Understanding
+## AI-Powered Resume Understanding
 
 The ML layer uses **Python, Ollama, and Gemma 4** to analyze resume content.
 
@@ -112,7 +112,7 @@ This allows the recommendation system to identify opportunities even when the wo
 
 ---
 
-# 🎯 Internship & Job Matching
+# Internship & Job Matching
 
 After analyzing a resume, the system creates a candidate profile that can be compared against available opportunities.
 
@@ -134,7 +134,7 @@ The result is a **relevance score** for each opportunity.
 
 ---
 
-# 📊 Recommendation Ranking
+# Recommendation Ranking
 
 Instead of returning a large list of jobs, the platform ranks opportunities based on how well they match the candidate.
 
@@ -164,7 +164,7 @@ This makes the recommendations more useful than a conventional job search system
 
 ---
 
-# 🧩 System Architecture
+# System Architecture
 
 The project is divided into two major backend components.
 
@@ -189,7 +189,7 @@ The Node.js backend handles the core application functionality and acts as the m
 
 ---
 
-# 🐍 ML Service
+# ML Service
 
 The ML service provides an API layer around the AI functionality.
 
@@ -222,7 +222,7 @@ This separation also makes it possible to improve or replace the ML components i
 
 ---
 
-# 🧠 AI Pipeline
+# AI Pipeline
 
 The AI component can be viewed as several stages.
 
@@ -282,7 +282,7 @@ Opportunities are ranked so that the most suitable internships and jobs appear f
 
 ---
 
-# 🔍 Beyond Keyword Matching
+# Beyond Keyword Matching
 
 A major objective of the project is to move beyond simple keyword-based recommendation.
 
@@ -311,7 +311,7 @@ This semantic understanding is one of the core advantages of using an LLM-based 
 
 ---
 
-# 🎓 PM Internship Scheme Focus
+# PM Internship Scheme Focus
 
 The platform is particularly designed around the needs of students searching for internships.
 
@@ -335,7 +335,7 @@ This can be especially valuable for students who:
 
 ---
 
-# 🏗️ Technology Stack
+# Technology Stack
 
 | Component           | Technology |
 | ------------------- | ---------- |
@@ -347,7 +347,7 @@ This can be especially valuable for students who:
 
 ---
 
-# 🔮 Future Scope
+# Future Scope
 
 The platform can be extended beyond basic resume-to-job matching.
 
@@ -399,22 +399,22 @@ If a student is close to qualifying for a role, the system could recommend skill
 Students could receive recommendations such as:
 
 ```text
-🔥 Apply Immediately
+Apply Immediately
 Strong match — 92%
 
-⭐ Good Match
+Good Match
 Strong potential — 81%
 
-📚 Skill Gap
+Skill Gap
 Requires additional skills — 63%
 
-❌ Low Match
+Low Match
 Currently not recommended — 34%
 ```
 
 ---
 
-# 🎯 Project Vision
+# Project Vision
 
 The long-term vision is to build an **AI-powered career discovery and internship recommendation platform for students**.
 
@@ -424,4 +424,4 @@ The system aims to answer a simple but important question:
 
 > **"Given what I know and what I have done, which opportunities are actually right for me?"**
 
-By combining **LLM-based resume understanding, structured candidate profiling, semantic job matching, and recommendation ranking**, the project aims to make internship discovery more personalized, accessible, and effective for students.
+By combining **LLM-based resume understanding, structured candidate profiling, semantic job matching, and recommendation ranking**, the project aims to make internship discovery more personalized[...]
