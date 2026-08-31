@@ -1,0 +1,353 @@
+{
+  "info": {
+    "name": "Internship Platform API",
+    "description": "Complete API collection for the Internship & Job Recommendation Platform.\n\nSetup:\n1. Import this collection into Postman\n2. Run the 'Login' request first — the access token is auto-saved\n3. All other endpoints auto-use the saved token via the collection variable `{{accessToken}}`\n\nBase URL: http://localhost:8080",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Rahul Sharma\",\n  \"email\": \"rahul@example.com\",\n  \"phoneNumber\": \"+919876543210\",\n  \"college\": \"IIT Delhi\",\n  \"department\": \"Computer Science\",\n  \"graduationYear\": \"2025\",\n  \"password\": \"Rahul@123\",\n  \"confirmPassword\": \"Rahul@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Naya user register karo. Valid email, strong password (8+ chars, uppercase+lowercase+digit+special char) zaroori hai."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    console.log('✅ Tokens saved! Access: ' + jsonData.data.accessToken.substring(0, 30) + '...');",
+                  "} else {",
+                  "    console.log('❌ Login failed: ' + jsonData.message);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rahul@example.com\",\n  \"password\": \"Rahul@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login karo aur token lo. Yeh request automatically `accessToken` aur `refreshToken` save kar leti hai collection variables mein — baaki sab endpoints ke liye ready."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh"]
+            },
+            "description": "Jab access token expire ho jaye, isse naya token lo. Naya token automatically save ho jayega."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    console.log('✅ Tokens refreshed!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Login ke baad apni profile info dekho."
+          }
+        }
+      ],
+      "description": "Authentication endpoints — register, login, token management"
+    },
+    {
+      "name": "📄 Resumes",
+      "item": [
+        {
+          "name": "Upload Resume",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "description",
+                  "value": "My resume for software roles",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/resumes/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resumes", "upload"]
+            },
+            "description": "Resume file upload karo (PDF/DOC). Description optional hai."
+          }
+        },
+        {
+          "name": "Get All Resumes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resumes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resumes"]
+            },
+            "description": "Apne saare uploaded resumes dekho."
+          }
+        },
+        {
+          "name": "Get Active Resume",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resumes/active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resumes", "active"]
+            },
+            "description": "Jo resume currently active hai (job matching ke liye), woh dikhai dega."
+          }
+        },
+        {
+          "name": "Get Resume by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resumes/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resumes", "1"]
+            },
+            "description": "Specific resume ki details dekho. URL mein `1` ki jagah actual resume ID daalo."
+          }
+        },
+        {
+          "name": "Download Resume",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resumes/1/download",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resumes", "1", "download"]
+            },
+            "description": "Resume file download karo. Postman mein 'Send and Download' click karo."
+          }
+        },
+        {
+          "name": "Activate Resume",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resumes/1/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resumes", "1", "activate"]
+            },
+            "description": "Resume ko active banao — baaki sab automatically inactive ho jayenge."
+          }
+        },
+        {
+          "name": "Delete Resume",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/resumes/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resumes", "1"]
+            },
+            "description": "Resume permanently delete karo. Yeh undo nahi hoga!"
+          }
+        }
+      ],
+      "description": "Resume management — upload, list, download, activate, delete"
+    },
+    {
+      "name": "🤖 ML",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ml/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ml", "health"]
+            },
+            "description": "Check karo ki ML service chal raha hai ya nahi. Job matching se pehle yeh call karo."
+          }
+        },
+        {
+          "name": "Analyze Resume (Text)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resumeText\": \"Rahul Sharma - B.Tech CSE from IIT Delhi. Skills: Java, React, Spring Boot, Python. 2 years experience at TCS as Software Developer.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ml/analyze",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ml", "analyze"]
+            },
+            "description": "Resume ka text bhejo aur ML se detailed analysis lo — skills, experience, education."
+          }
+        },
+        {
+          "name": "Match Jobs (File)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "topN",
+                  "value": "5",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ml/match",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ml", "match"]
+            },
+            "description": "Resume file upload karo aur best matching internships/jobs milegi. `topN` se result count control karo (default 10)."
+          }
+        }
+      ],
+      "description": "ML-powered resume analysis and job matching"
+    }
+  ]
+}
