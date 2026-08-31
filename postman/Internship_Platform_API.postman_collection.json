@@ -30,7 +30,7 @@
   },
   "item": [
     {
-      "name": "🔐 Auth",
+      "name": "Auth",
       "item": [
         {
           "name": "Register",
@@ -70,9 +70,9 @@
                   "if (jsonData.success && jsonData.data) {",
                   "    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
                   "    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
-                  "    console.log('✅ Tokens saved! Access: ' + jsonData.data.accessToken.substring(0, 30) + '...');",
+                  "    console.log('[OK] Tokens saved! Access: ' + jsonData.data.accessToken.substring(0, 30) + '...');",
                   "} else {",
-                  "    console.log('❌ Login failed: ' + jsonData.message);",
+                  "    console.log('[FAIL] Login failed: ' + jsonData.message);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -101,7 +101,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "login"]
             },
-            "description": "Login karo aur token lo. Yeh request automatically `accessToken` aur `refreshToken` save kar leti hai collection variables mein — baaki sab endpoints ke liye ready."
+            "description": "Login karo aur token lo. Yeh request automatically accessToken aur refreshToken save kar leti hai collection variables mein — baaki sab endpoints ke liye ready."
           }
         },
         {
@@ -139,7 +139,7 @@
                   "if (jsonData.success && jsonData.data) {",
                   "    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
                   "    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
-                  "    console.log('✅ Tokens refreshed!');",
+                  "    console.log('[OK] Tokens refreshed!');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -164,7 +164,7 @@
       "description": "Authentication endpoints — register, login, token management"
     },
     {
-      "name": "📄 Resumes",
+      "name": "Resumes",
       "item": [
         {
           "name": "Upload Resume",
@@ -230,7 +230,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "resumes", "1"]
             },
-            "description": "Specific resume ki details dekho. URL mein `1` ki jagah actual resume ID daalo."
+            "description": "Specific resume ki details dekho. URL mein 1 ki jagah actual resume ID daalo."
           }
         },
         {
@@ -276,7 +276,7 @@
       "description": "Resume management — upload, list, download, activate, delete"
     },
     {
-      "name": "🤖 ML",
+      "name": "ML",
       "item": [
         {
           "name": "Health Check",
@@ -343,7 +343,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "ml", "match"]
             },
-            "description": "Resume file upload karo aur best matching internships/jobs milegi. `topN` se result count control karo (default 10)."
+            "description": "Resume file upload karo aur best matching internships/jobs milegi. topN se result count control karo (default 10)."
           }
         }
       ],
