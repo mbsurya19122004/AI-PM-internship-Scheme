@@ -1,6 +1,6 @@
-# 🚀 API Endpoints Reference — Internship Platform
+#  API Endpoints Reference — Internship Platform SIH
 
-> Yeh document saare backend endpoints ka detailed guide hai. Isko apne teammates ke saath share karo taaki sabko pata rahe ki kya kya ban raha hai aur kaise use karna hai.
+> Yeh document saare backend endpoints ka detailed guide hai. 
 
 ---
 
