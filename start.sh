@@ -10,6 +10,12 @@ set ML_DIR "$SCRIPT_DIR/ML"
 # ============================================================
 
 function start_all
+    # Kill any lingering processes on our ports
+    lsof -ti:8080 | xargs kill -9 2>/dev/null
+    lsof -ti:8000 | xargs kill -9 2>/dev/null
+    lsof -ti:3000 | xargs kill -9 2>/dev/null
+    sleep 1
+
     echo "=========================================="
     echo "       INTERNSHIP PLATFORM"
     echo "=========================================="
@@ -77,8 +83,6 @@ function start_all
     mvn spring-boot:run &
 
     set BACKEND_PID $last_pid
-
-    echo "H2 Console: http://localhost:8080/h2-console"
 
     echo ""
 
@@ -160,6 +164,10 @@ end
 
 function run_tests
 
+    # Kill any lingering process on port 8080
+    lsof -ti:8080 | xargs kill -9 2>/dev/null
+    sleep 1
+
     cd "$BACKEND_DIR"
 
     echo "Building backend..."
@@ -181,15 +189,15 @@ function run_tests
 
     for i in (seq 1 30)
 
-        set response (curl -sf \
+        set response (curl -s -o /dev/null -w '%{http_code}' \
             http://localhost:8080/api/auth/login \
             -X POST \
             -H "Content-Type: application/json" \
             -d '{"email":"x@x.com","password":"x"}' \
             2>/dev/null)
 
-        if test $status -eq 0
-            echo "Server ready!"
+        if test -n "$response" -a "$response" != "000"
+            echo "Server ready! (HTTP $response)"
             set SERVER_READY true
             break
         end
@@ -210,6 +218,9 @@ function run_tests
     set PASS 0
     set FAIL 0
 
+    # check: prints PASS/FAIL and updates counters.
+    # In fish, 'set' inside a function only modifies local scope,
+    # so we print the result and use 'or'/'and' to update counters inline.
     function check
         set name $argv[1]
         set expected $argv[2]
@@ -217,12 +228,10 @@ function run_tests
 
         if string match -q "*$expected*" "$actual"
             echo "  PASS: $name"
-            set PASS (math $PASS + 1)
         else
             echo "  FAIL: $name"
             echo "       Expected: $expected"
             echo "       Got: "(string sub -l 200 "$actual")
-            set FAIL (math $FAIL + 1)
         end
     end
 
@@ -241,6 +250,8 @@ function run_tests
         -d '{"fullName":"Abhay Kumar","email":"abhay@example.com","phoneNumber":"9876543210","college":"IIT Delhi","department":"Computer Science","graduationYear":"2027","password":"Pass@1234","confirmPassword":"Pass@1234"}')
 
     check "Register returns success" "true" "$R1"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 2. DUPLICATE EMAIL
     echo "2. Duplicate email"
@@ -251,6 +262,8 @@ function run_tests
         -d '{"fullName":"Test","email":"abhay@example.com","phoneNumber":"1234567890","college":"IIT Bombay","password":"Pass@1234","confirmPassword":"Pass@1234"}')
 
     check "Duplicate email rejected" "already registered" "$R2"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 3. INVALID PASSWORD
     echo "3. Invalid password"
@@ -261,6 +274,8 @@ function run_tests
         -d '{"fullName":"Test","email":"t@t.com","phoneNumber":"1111111111","college":"IIT","password":"weak","confirmPassword":"weak"}')
 
     check "Weak password rejected" "Validation failed" "$R3"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 4. PASSWORD MISMATCH
     echo "4. Mismatched passwords"
@@ -271,6 +286,8 @@ function run_tests
         -d '{"fullName":"Test","email":"t2@t.com","phoneNumber":"2222222222","college":"IIT","password":"Pass@1234","confirmPassword":"Different@123"}')
 
     check "Mismatched passwords rejected" "Passwords do not match" "$R4"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 5. LOGIN
     echo "5. Login"
@@ -281,6 +298,8 @@ function run_tests
         -d '{"email":"abhay@example.com","password":"Pass@1234"}')
 
     check "Login returns success" "true" "$LOGIN"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     set ACCESS (echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('accessToken',''))")
     set REFRESH (echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('refreshToken',''))")
@@ -299,6 +318,8 @@ function run_tests
         -d '{"email":"abhay@example.com","password":"WrongPass@123"}')
 
     check "Wrong password rejected" "Invalid email or password" "$R6"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 7. GET ME
     echo "7. Get profile with token"
@@ -308,6 +329,8 @@ function run_tests
         -H "Authorization: Bearer $ACCESS")
 
     check "Get /me success" "Abhay Kumar" "$R7"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 8. NO TOKEN
     echo "8. Get profile without token"
@@ -315,6 +338,8 @@ function run_tests
     set R8 (curl -s http://localhost:8080/api/auth/me)
 
     check "No token rejected" "Authentication required" "$R8"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 9. REFRESH
     echo "9. Refresh token"
@@ -325,6 +350,8 @@ function run_tests
         -d "{\"refreshToken\":\"$REFRESH\"}")
 
     check "Refresh returns new tokens" "accessToken" "$R9"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 10. UPLOAD RESUME
     echo "10. Upload resume 1"
@@ -338,6 +365,8 @@ function run_tests
         -F "description=Main resume")
 
     check "Upload resume 1 success" "Resume uploaded" "$U1"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     set R1_ID (echo "$U1" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['id'])")
 
@@ -353,6 +382,8 @@ function run_tests
         -F "description=Internship resume")
 
     check "Upload resume 2 success" "Resume uploaded" "$U2"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     set R2_ID (echo "$U2" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['id'])")
 
@@ -364,6 +395,8 @@ function run_tests
         -H "Authorization: Bearer $ACCESS")
 
     check "List resumes" "originalFileName" "$R12"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 13. ACTIVE RESUME
     echo "13. Get active resume"
@@ -373,6 +406,8 @@ function run_tests
         -H "Authorization: Bearer $ACCESS")
 
     check "Active resume exists" "active" "$R13"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 14. ACTIVATE RESUME
     echo "14. Activate resume 2"
@@ -382,6 +417,8 @@ function run_tests
         -H "Authorization: Bearer $ACCESS")
 
     check "Resume 2 activated" "Resume activated" "$R14"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 15. GET BY ID
     echo "15. Get resume by ID"
@@ -391,6 +428,8 @@ function run_tests
         -H "Authorization: Bearer $ACCESS")
 
     check "Get resume by ID success" "originalFileName" "$R15"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 16. DOWNLOAD
     echo "16. Download resume"
@@ -423,6 +462,8 @@ function run_tests
         -H "Authorization: Bearer $ACCESS")
 
     check "Delete resume success" "Resume deleted" "$R17"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 18. VERIFY DELETE
     echo "18. Verify delete"
@@ -452,17 +493,128 @@ function run_tests
         -F "file=@/tmp/test.txt;type=text/plain")
 
     check "Invalid file rejected" "Only PDF and Word" "$R19"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     # 20. UNAUTHORIZED
     echo "20. Unauthorized access"
 
     set R20 (curl -s http://localhost:8080/api/resumes)
 
-    check "Unauthorized returns 401" "Unauthorized" "$R20"
+    check "Unauthorized returns 401" "Authentication required" "$R20"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
+
+    # 21. GET ALL INTERNSHIPS
+    echo "21. Get all internships"
+
+    set R21 (curl -s \
+        http://localhost:8080/api/internships \
+        -H "Authorization: Bearer $ACCESS")
+
+    check "Get internships returns data" "id" "$R21"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
+
+    # 22. CREATE INTERNSHIP
+    echo "22. Create internship"
+
+    set R22 (curl -s -X POST \
+        http://localhost:8080/api/internships \
+        -H "Authorization: Bearer $ACCESS" \
+        -H "Content-Type: application/json" \
+        -d '{"title":"Software Engineer Intern","company":"Google","description":"Work on search infrastructure","applicationLink":"https://careers.google.com/apply"}')
+
+    check "Create internship returns success" "Software Engineer Intern" "$R22"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
+
+    set NEW_ID (echo "$R22" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['id'])")
+
+    # 23. GET INTERNSHIP BY ID
+    echo "23. Get internship by ID"
+
+    set R23 (curl -s \
+        "http://localhost:8080/api/internships/$NEW_ID" \
+        -H "Authorization: Bearer $ACCESS")
+
+    check "Get internship by ID" "Software Engineer Intern" "$R23"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
+
+    # 24. INTERNSHIP UNAUTHORIZED
+    echo "24. Internship unauthorized"
+
+    set R24 (curl -s http://localhost:8080/api/internships)
+
+    check "Internship unauthorized returns 401" "Authentication required" "$R24"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
+
+    # 25. RESEND VERIFICATION
+    echo "25. Resend verification email"
+
+    set R25 (curl -s -X POST \
+        http://localhost:8080/api/auth/resend-verification \
+        -H "Authorization: Bearer $ACCESS")
+
+    check "Resend verification returns success" "Verification email sent" "$R25"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
+
+    # 26. PROFILE PICTURE UPLOAD
+    echo "26. Upload profile picture"
+
+    echo -n "\xff\xd8\xff\xe0" > /tmp/test-pic.jpg
+
+    set R26 (curl -s -X POST \
+        http://localhost:8080/api/users/me/profile-picture \
+        -H "Authorization: Bearer $ACCESS" \
+        -F "file=@/tmp/test-pic.jpg;type=image/jpeg")
+
+    check "Upload profile picture success" "Profile picture uploaded" "$R26"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
+
+    # 27. GET PROFILE PICTURE
+    echo "27. Get profile picture"
+
+    set R27_STATUS (curl -s -o /dev/null -w "%{http_code}" \
+        http://localhost:8080/api/users/me/profile-picture \
+        -H "Authorization: Bearer $ACCESS")
+
+    if test "$R27_STATUS" = "200"
+        echo "  PASS: Get profile picture returns 200"
+        set PASS (math $PASS + 1)
+    else
+        echo "  FAIL: Get profile picture returned $R27_STATUS"
+        set FAIL (math $FAIL + 1)
+    end
+
+    # 28. DELETE PROFILE PICTURE
+    echo "28. Delete profile picture"
+
+    set R28 (curl -s -X DELETE \
+        http://localhost:8080/api/users/me/profile-picture \
+        -H "Authorization: Bearer $ACCESS")
+
+    check "Delete profile picture success" "Profile picture deleted" "$R28"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
+
+    # 29. ADMIN LIST USERS (should fail for ROLE_USER)
+    echo "29. Admin list users (should 403 for ROLE_USER)"
+
+    set R29 (curl -s http://localhost:8080/api/admin/users \
+        -H "Authorization: Bearer $ACCESS")
+
+    check "Admin access denied for ROLE_USER" "Access denied" "$R29"
+    and set PASS (math $PASS + 1)
+    or set FAIL (math $FAIL + 1)
 
     echo ""
     echo "=========================================="
-    echo "RESULTS: $PASS passed, $FAIL failed"
+    echo "RESULTS: $PASS passed, $FAIL failed (29 tests)"
     echo "=========================================="
 
     kill $SPRING_PID 2>/dev/null

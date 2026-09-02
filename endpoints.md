@@ -242,6 +242,210 @@ Authorization: Bearer <access-token>
 
 ---
 
+### 1.5 Change Password
+
+```
+POST /api/auth/change-password
+```
+
+Logged-in user apna password change kar sakta hai. Current password verify hota hai, aur saare purane tokens invalidate ho jaate hain.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+| Field | Type | Required | Validation |
+|---|---|---|---|
+| `currentPassword` | String | ✅ | Current password match karna chahiye |
+| `newPassword` | String | ✅ | 8-128 chars, uppercase+lowercase+digit+special char |
+| `confirmNewPassword` | String | ✅ | newPassword se match hona chahiye |
+
+**Example Request:**
+```json
+{
+  "currentPassword": "Rahul@123",
+  "newPassword": "Rahul@456",
+  "confirmNewPassword": "Rahul@456"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Password changed successfully"
+}
+```
+
+**Error Responses:**
+- `401` — "Invalid email or password" (current password galat hai)
+- `400` — "Passwords do not match" (new aur confirm match nahi kar rahe)
+- `400` — "New password must be different from current password"
+- `400` — Validation failed (kamzor password)
+
+**Note:** Password change ke baad saare purane JWT tokens invalidate ho jaate hain — user ko dobara login karna padega.
+
+---
+
+### 1.6 Forgot Password
+
+```
+POST /api/auth/forgot-password
+```
+
+Password bhool gaye? Is endpoint pe email bhejo — system ek reset token generate karega. **Hamesha same response aata hai** chahe email exist kare ya nahi (user enumeration prevent karta hai).
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Request Body:**
+
+| Field | Type | Required |
+|---|---|---|
+| `email` | String | ✅, valid email |
+
+**Example Request:**
+```json
+{
+  "email": "rahul@example.com"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "If the email exists, a reset link has been sent"
+}
+```
+
+**Security Features:**
+- Rate limiting: 3 requests per email per hour, 10 per IP per hour
+- Token expires in 15 minutes
+- Previous tokens deleted when new one is generated
+- Response same hota hai email exist kare ya nahi
+
+**Note:** Token email se bheja jaata hai (SMTP configuration required).
+
+---
+
+### 1.7 Reset Password
+
+```
+POST /api/auth/reset-password
+```
+
+Reset token ke saath naya password set karo. Token valid hona chahiye, expire nahi hona chahiye, aur use nahi hona chahiye.
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Request Body:**
+
+| Field | Type | Required | Validation |
+|---|---|---|---|
+| `token` | String | ✅ | Valid UUID reset token |
+| `newPassword` | String | ✅ | 8-128 chars, strength rules |
+| `confirmNewPassword` | String | ✅ | newPassword se match |
+
+**Example Request:**
+```json
+{
+  "token": "550e8400-e29b-41d4-a716-446655440000",
+  "newPassword": "NewRahul@123",
+  "confirmNewPassword": "NewRahul@123"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Password reset successfully"
+}
+```
+
+**Error Responses:**
+- `400` — "Invalid or expired reset token"
+- `400` — "Passwords do not match"
+- `400` — "Reset token has been locked due to too many failed attempts" (5 galat attempts ke baad)
+
+**Security Features:**
+- Token single-use hai — use ke baad delete ho jaata hai
+- 5 galat attempts ke baad token lock ho jaata hai
+- Password reset ke baad saare purane tokens invalidate hote hain
+- Failed login attempts aur account lockout reset ho jaata hai
+
+---
+
+### 1.8 Verify Email
+
+```
+GET /api/auth/verify-email?token=VERIFICATION_TOKEN
+```
+
+Register ke baad email verify karo. Token email pe bheja jaata hai.
+
+**Query Parameters:**
+
+| Param | Type | Required |
+|---|---|---|
+| `token` | String | ✅ | UUID verification token |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Email verified successfully"
+}
+```
+
+**Error Responses:**
+- `400` — "Invalid or expired verification token"
+- `400` — "Invalid verification token"
+
+**Security Features:**
+- Token 24 hours mein expire hota hai
+- Token single-use hai
+- Password reset token se verification nahi ho sakta
+
+---
+
+### 1.9 Resend Verification Email
+
+```
+POST /api/auth/resend-verification
+```
+
+Logged-in user verification email dobara bhej sakta hai.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Verification email sent"
+}
+```
+
+**Error Response:**
+- `400` — "Email is already verified"
+- `401` — "Authentication required"
+
+---
+
 ## 2. 📄 Resume Endpoints
 
 Base path: `/api/resumes`
@@ -660,7 +864,299 @@ curl -X POST http://localhost:8080/api/ml/match \
 
 ---
 
-## 4. 🧪 Quick Testing Guide (cURL se)
+## 4. 💼 Internship Endpoints
+
+Base path: `/api/internships`
+
+Yeh sabhi endpoints **authenticated** hain — JWT token zaroori hai.
+
+---
+
+### 4.1 Saari Internships Dekho
+
+```
+GET /api/internships
+```
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Internships retrieved",
+  "data": [
+    {
+      "id": 1,
+      "title": "Software Engineering Intern",
+      "company": "Google",
+      "description": "Work on large-scale distributed systems...",
+      "applicationLink": "https://careers.google.com/jobs/results/123456/",
+      "createdAt": "2026-08-31T10:00:00",
+      "updatedAt": "2026-08-31T10:00:00"
+    },
+    {
+      "id": 2,
+      "title": "Frontend Developer Intern",
+      "company": "Microsoft",
+      "description": "Build beautiful and performant web applications...",
+      "applicationLink": "https://careers.microsoft.com/global/en/apply/789012/",
+      "createdAt": "2026-08-31T10:00:00",
+      "updatedAt": "2026-08-31T10:00:00"
+    }
+  ]
+}
+```
+
+---
+
+### 4.2 Internship By ID Dekho
+
+```
+GET /api/internships/{id}
+```
+
+| Param | Type | Description |
+|---|---|---|
+| `id` | Long | Internship ka unique ID |
+
+**Example:** `GET /api/internships/1`
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Internship retrieved",
+  "data": {
+    "id": 1,
+    "title": "Software Engineering Intern",
+    "company": "Google",
+    "description": "Work on large-scale distributed systems...",
+    "applicationLink": "https://careers.google.com/jobs/results/123456/",
+    "createdAt": "2026-08-31T10:00:00",
+    "updatedAt": "2026-08-31T10:00:00"
+  }
+}
+```
+
+---
+
+### 4.3 Naya Internship Banao
+
+```
+POST /api/internships
+```
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+| Field | Type | Required | Validation |
+|---|---|---|---|
+| `title` | String | ✅ | 1-200 characters |
+| `company` | String | ✅ | 1-200 characters |
+| `description` | String | ❌ | Max 5000 characters |
+| `applicationLink` | String | ✅ | Valid URL |
+
+**Example Request:**
+```json
+{
+  "title": "Backend Developer Intern",
+  "company": "Infosys",
+  "description": "Work on enterprise Java applications using Spring Boot and microservices.",
+  "applicationLink": "https://www.infosys.com/careers/apply/123"
+}
+```
+
+**Success Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Internship created",
+  "data": {
+    "id": 9,
+    "title": "Backend Developer Intern",
+    "company": "Infosys",
+    "description": "Work on enterprise Java applications using Spring Boot and microservices.",
+    "applicationLink": "https://www.infosys.com/careers/apply/123",
+    "createdAt": "2026-08-31T12:00:00",
+    "updatedAt": "2026-08-31T12:00:00"
+  }
+}
+```
+
+---
+
+## 5. 👤 Profile Picture Endpoints
+
+Base path: `/api/users`
+
+Yeh sabhi endpoints **authenticated** hain.
+
+---
+
+### 5.1 Upload/Replace Profile Picture
+
+```
+POST /api/users/me/profile-picture
+```
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+Content-Type: multipart/form-data
+```
+
+**Form Data:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `file` | File | ✅ | JPEG, PNG, or WebP image (max 5MB) |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Profile picture uploaded successfully",
+  "data": {
+    "profilePictureUrl": "/api/users/me/profile-picture"
+  }
+}
+```
+
+**Error Responses:**
+- `400` — "Only JPEG, PNG, and WebP images are allowed"
+- `400` — "File size exceeds maximum limit of 5MB"
+
+---
+
+### 5.2 Get Profile Picture
+
+```
+GET /api/users/me/profile-picture
+```
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Response:** Raw image data with correct Content-Type header.
+
+**Error:** `404` — No profile picture found
+
+---
+
+### 5.3 Delete Profile Picture
+
+```
+DELETE /api/users/me/profile-picture
+```
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Profile picture deleted successfully"
+}
+```
+
+---
+
+## 6. 🔒 Admin Endpoints
+
+Base path: `/api/admin`
+
+Yeh sabhi endpoints **ROLE_ADMIN** role require karte hain.
+
+---
+
+### 6.1 List All Users
+
+```
+GET /api/admin/users
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Users retrieved",
+  "data": [
+    {
+      "id": 1,
+      "email": "user@example.com",
+      "fullName": "User Name",
+      "enabled": true,
+      "emailVerified": true,
+      "createdAt": "2026-08-28T10:30:00"
+    }
+  ]
+}
+```
+
+**Error:** `403` — ROLE_ADMIN required
+
+---
+
+### 6.2 Change User Role
+
+```
+PATCH /api/admin/users/{userId}/role
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin-access-token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+| Field | Type | Required | Allowed Values |
+|---|---|---|---|
+| `role` | String | ✅ | `ROLE_USER`, `ROLE_ADMIN` |
+
+**Example Request:**
+```json
+{
+  "role": "ROLE_ADMIN"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "User role updated successfully"
+}
+```
+
+**Error Responses:**
+- `400` — "Role is required"
+- `400` — "Invalid role. Allowed roles: ROLE_USER, ROLE_ADMIN"
+- `403` — ROLE_ADMIN required
+
+---
+
+## 7. 🧪 Quick Testing Guide (cURL se)
 
 ### Step 1: Register karo
 ```bash
@@ -692,7 +1188,26 @@ curl -X POST http://localhost:8080/api/resumes/upload \
   -F "file=@./my_resume.pdf"
 ```
 
-### Step 4: Job matching karwao
+### Step 4: Saari internships dekho
+```bash
+curl -X GET http://localhost:8080/api/internships \
+  -H "Authorization: Bearer <YOUR_TOKEN>"
+```
+
+### Step 5: Naya internship banao
+```bash
+curl -X POST http://localhost:8080/api/internships \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Backend Developer Intern",
+    "company": "Infosys",
+    "description": "Work on enterprise Java applications.",
+    "applicationLink": "https://www.infosys.com/careers/apply/123"
+  }'
+```
+
+### Step 6: Job matching karwao
 ```bash
 curl -X POST http://localhost:8080/api/ml/match \
   -H "Authorization: Bearer <YOUR_TOKEN>" \
@@ -702,7 +1217,7 @@ curl -X POST http://localhost:8080/api/ml/match \
 
 ---
 
-## 5. ⚠️ Common Errors
+## 6. ⚠️ Common Errors
 
 | HTTP Status | Matlab | Kab Aata Hai |
 |---|---|---|
@@ -714,7 +1229,7 @@ curl -X POST http://localhost:8080/api/ml/match \
 
 ---
 
-## 6. 📝 Notes for Teammates
+## 7. 📝 Notes for Teammates
 
 - **JWT Token ki expiry:** Access token ~1 ghante mein expire hota hai, refresh token zyada time tak valid rehta hai
 - **Resume activate:** Sirf ek hi resume active ho sakta hai ek time pe — jab naya activate karte ho, purana wala automatically inactive ho jata hai

@@ -159,9 +159,122 @@
             },
             "description": "Login ke baad apni profile info dekho."
           }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Rahul@123\",\n  \"newPassword\": \"Rahul@456\",\n  \"confirmNewPassword\": \"Rahul@456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "change-password"]
+            },
+            "description": "Logged-in user apna password change kare. Current password verify hota hai, aur saare purane tokens invalidate ho jaate hain."
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rahul@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "forgot-password"]
+            },
+            "description": "Password bhool gaye? Email bhejo — system ek reset token generate karega. Hamesha same response aata hai (user enumeration prevent)."
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"newPassword\": \"NewRahul@123\",\n  \"confirmNewPassword\": \"NewRahul@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "reset-password"]
+            },
+            "description": "Reset token ke saath naya password set karo. Token valid, non-expired, aur unused hona chahiye."
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-email?token=VERIFICATION_TOKEN",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify-email"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "VERIFICATION_TOKEN"
+                }
+              ]
+            },
+            "description": "Email verify karo. Token email pe bheja jaata hai registration ke baad."
+          }
+        },
+        {
+          "name": "Resend Verification",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/resend-verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "resend-verification"]
+            },
+            "description": "Verification email dobara bhejo. Authenticated user ke liye."
+          }
         }
       ],
-      "description": "Authentication endpoints — register, login, token management"
+      "description": "Authentication endpoints — register, login, token management, password operations, email verification"
     },
     {
       "name": "Resumes",
@@ -274,6 +387,166 @@
         }
       ],
       "description": "Resume management — upload, list, download, activate, delete"
+    },
+    {
+      "name": "Internships",
+      "item": [
+        {
+          "name": "Get All Internships",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/internships",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "internships"]
+            },
+            "description": "Saari available internships dekho. Sample data seed data.sql se aati hai."
+          }
+        },
+        {
+          "name": "Get Internship by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/internships/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "internships", "1"]
+            },
+            "description": "Specific internship ki details dekho. URL mein 1 ki jagah actual internship ID daalo."
+          }
+        },
+        {
+          "name": "Create Internship",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Backend Developer Intern\",\n  \"company\": \"Infosys\",\n  \"description\": \"Work on enterprise Java applications using Spring Boot and microservices.\",\n  \"applicationLink\": \"https://www.infosys.com/careers/apply/123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/internships",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "internships"]
+            },
+            "description": "Naya internship create karo. Title, company, aur applicationLink required hai."
+          }
+        }
+      ],
+      "description": "Internship listings — view and create internships"
+    },
+    {
+      "name": "Profile Picture",
+      "item": [
+        {
+          "name": "Upload Profile Picture",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/profile-picture",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "profile-picture"]
+            },
+            "description": "Profile picture upload karo (JPEG/PNG/WebP, max 5MB). Purani picture replace ho jayegi."
+          }
+        },
+        {
+          "name": "Get Profile Picture",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/profile-picture",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "profile-picture"]
+            },
+            "description": "Apni profile picture download karo. Image raw data return hota hai."
+          }
+        },
+        {
+          "name": "Delete Profile Picture",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/profile-picture",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "profile-picture"]
+            },
+            "description": "Profile picture permanently delete karo."
+          }
+        }
+      ],
+      "description": "Profile picture management — upload, retrieve, delete"
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            },
+            "description": "Saare users ki list dekho. Sirf ROLE_ADMIN access kar sakta hai."
+          }
+        },
+        {
+          "name": "Change User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ROLE_USER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/1/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "1", "role"]
+            },
+            "description": "User ka role change karo. Allowed roles: ROLE_USER, ROLE_ADMIN. Sirf ROLE_ADMIN kar sakta hai."
+          }
+        }
+      ],
+      "description": "Admin endpoints — user management, role changes (ROLE_ADMIN required)"
     },
     {
       "name": "ML",

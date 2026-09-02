@@ -25,8 +25,7 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
 
         Map<String, Object> body = new HashMap<>();
         body.put("success", false);
-        body.put("message", "Access denied: " + accessDeniedException.getMessage());
-        body.put("path", request.getServletPath());
+        body.put("message", "Access denied");
 
         new ObjectMapper().writeValue(response.getOutputStream(), body);
     }

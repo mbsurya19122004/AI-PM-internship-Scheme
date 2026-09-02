@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API Test Console</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 </head>
 <body>
 
-<h1>Backend API Test Console</h1>
+<h1>Backend API Test Console By DADDY CAPTO</h1>
 
 <div>
     <label>API URL:</label>
@@ -129,6 +132,63 @@
 
 <hr>
 
+<!-- EMAIL VERIFICATION -->
+<h3>13. Email Verification</h3>
+<label>Token:</label> <input type="text" id="verifyToken" placeholder="Paste token from email or logs">
+<button onclick="doVerifyEmail()">Verify Email</button>
+<button onclick="doResendVerification()">Resend Verification Email</button>
+<pre id="verifyRes"></pre>
+
+<hr>
+
+<!-- FORGOT PASSWORD -->
+<h3>14. Forgot Password</h3>
+<label>Email:</label> <input type="email" id="forgotEmail">
+<button onclick="doForgotPassword()">Send Reset Link</button>
+<pre id="forgotRes"></pre>
+
+<hr>
+
+<!-- RESET PASSWORD -->
+<h3>15. Reset Password</h3>
+<label>Token:</label> <input type="text" id="resetToken" placeholder="Paste token from email">
+<label>New Password:</label> <input type="password" id="newPass">
+<label>Confirm:</label> <input type="password" id="newPass2">
+<button onclick="doResetPassword()">Reset Password</button>
+<pre id="resetRes"></pre>
+
+<hr>
+
+<!-- PROFILE PICTURE -->
+<h3>16. Profile Picture</h3>
+<label>Image (JPEG/PNG/WebP):</label> <input type="file" id="profilePic" accept="image/jpeg,image/png,image/webp">
+<button onclick="doUploadProfilePic()">Upload Picture</button>
+<button onclick="doGetProfilePic()">Get Picture</button>
+<button onclick="doDeleteProfilePic()">Delete Picture</button>
+<pre id="profilePicRes"></pre>
+<div id="profilePicPreview"></div>
+
+<hr>
+
+<!-- ADMIN -->
+<h3>17. Admin - List Users</h3>
+<button onclick="doAdminListUsers()">List All Users</button>
+<pre id="adminUsersRes"></pre>
+
+<hr>
+
+<h3>18. Admin - Change User Role</h3>
+<label>User ID:</label> <input type="number" id="adminUserId" value="1">
+<label>Role:</label>
+<select id="adminRole">
+    <option value="ROLE_USER">ROLE_USER</option>
+    <option value="ROLE_ADMIN">ROLE_ADMIN</option>
+</select>
+<button onclick="doAdminChangeRole()">Change Role</button>
+<pre id="adminRoleRes"></pre>
+
+<hr>
+
 <!-- LOG -->
 <h3>Request Log</h3>
 <div id="log"></div>
@@ -182,15 +242,20 @@ async function api(method, url, body, isFormData, resultId) {
 }
 
 async function checkHealth() {
+    const el = document.getElementById('statusText');
     try {
+        el.textContent = 'Checking...';
+        console.log('Health check: POST ' + base() + '/api/auth/login');
         const res = await fetch(base() + '/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: 'x@x.com', password: 'x' })
         });
-        document.getElementById('statusText').textContent = 'Connected (HTTP ' + res.status + ')';
+        console.log('Health check response: HTTP ' + res.status);
+        el.textContent = 'Connected (HTTP ' + res.status + ')';
     } catch (e) {
-        document.getElementById('statusText').textContent = 'Failed: ' + e.message;
+        console.error('Health check failed:', e);
+        el.textContent = 'Failed: ' + e.message;
     }
 }
 
@@ -397,6 +462,80 @@ async function doMlMatch() {
     }
 }
 
+// EMAIL VERIFICATION
+async function doVerifyEmail() {
+    const token = v('verifyToken');
+    if (!token) { show('verifyRes', 'Enter token first'); return; }
+    await api('GET', '/api/auth/verify-email?token=' + encodeURIComponent(token), null, false, 'verifyRes');
+}
+
+async function doResendVerification() {
+    await api('POST', '/api/auth/resend-verification', {}, false, 'verifyRes');
+}
+
+// FORGOT / RESET PASSWORD
+async function doForgotPassword() {
+    await api('POST', '/api/auth/forgot-password', { email: v('forgotEmail') }, false, 'forgotRes');
+}
+
+async function doResetPassword() {
+    await api('POST', '/api/auth/reset-password', {
+        token: v('resetToken'),
+        newPassword: v('newPass'),
+        confirmNewPassword: v('newPass2')
+    }, false, 'resetRes');
+}
+
+// PROFILE PICTURE
+async function doUploadProfilePic() {
+    const file = document.getElementById('profilePic').files[0];
+    if (!file) { show('profilePicRes', 'Select an image first'); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    const data = await api('POST', '/api/users/me/profile-picture', fd, true, 'profilePicRes');
+    if (data && data.success) doGetProfilePic();
+}
+
+async function doGetProfilePic() {
+    try {
+        const res = await fetch(base() + '/api/users/me/profile-picture', {
+            headers: { 'Authorization': 'Bearer ' + accessToken }
+        });
+        logEntry('GET', '/api/users/me/profile-picture', res.status);
+        if (res.ok) {
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            document.getElementById('profilePicPreview').innerHTML =
+                '<img src="' + url + '" style="max-width:200px;max-height:200px;border:1px solid #ccc;border-radius:8px;">';
+            show('profilePicRes', 'Picture loaded (' + blob.size + ' bytes)');
+        } else {
+            const t = await res.text();
+            show('profilePicRes', 'No picture or error: ' + t);
+            document.getElementById('profilePicPreview').innerHTML = '';
+        }
+    } catch (e) {
+        show('profilePicRes', 'Error: ' + e.message);
+    }
+}
+
+async function doDeleteProfilePic() {
+    await api('DELETE', '/api/users/me/profile-picture', null, false, 'profilePicRes');
+    document.getElementById('profilePicPreview').innerHTML = '';
+}
+
+// ADMIN
+async function doAdminListUsers() {
+    await api('GET', '/api/admin/users', null, false, 'adminUsersRes');
+}
+
+async function doAdminChangeRole() {
+    const userId = v('adminUserId');
+    const role = v('adminRole');
+    if (!userId) { show('adminRoleRes', 'Enter user ID'); return; }
+    await api('PATCH', '/api/admin/users/' + userId + '/role', { role: role }, false, 'adminRoleRes');
+}
+
+console.log('test.html loaded, running health check...');
 checkHealth();
 </script>
 </body>

@@ -53,6 +53,20 @@ public class User {
     @Builder.Default
     private boolean emailVerified = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private int failedLoginAttempts = 0;
+
+    private LocalDateTime accountLockedUntil;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int tokenVersion = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private String role = "ROLE_USER";
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Resume> resumes = new ArrayList<>();

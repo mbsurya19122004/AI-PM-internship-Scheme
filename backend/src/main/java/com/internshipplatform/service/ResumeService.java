@@ -5,12 +5,14 @@ import com.internshipplatform.entity.Resume;
 import com.internshipplatform.entity.User;
 import com.internshipplatform.repository.ResumeRepository;
 import com.internshipplatform.repository.UserRepository;
+import com.internshipplatform.security.SecurityEventLogger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +32,8 @@ public class ResumeService {
 
     private final ResumeRepository resumeRepository;
     private final UserRepository userRepository;
+    private final SecurityEventLogger securityEventLogger;
+    private final HttpServletRequest request;
 
     @Transactional
     public ResumeResponse uploadResume(String email, MultipartFile file, String description) throws IOException {
@@ -57,7 +61,9 @@ public class ResumeService {
                 .build();
 
         resume = resumeRepository.save(resume);
-        log.info("Resume uploaded: {} for user: {}", resume.getOriginalFileName(), email);
+
+        String ipAddress = getClientIp();
+        securityEventLogger.logFileUpload(email, file.getOriginalFilename(), file.getSize(), ipAddress);
 
         return mapToResumeResponse(resume);
     }
@@ -144,6 +150,18 @@ public class ResumeService {
         if (!ALLOWED_TYPES.contains(file.getContentType())) {
             throw new IllegalArgumentException("Only PDF and Word documents are allowed");
         }
+    }
+
+    private String getClientIp() {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty()) {
+            return xRealIp;
+        }
+        return request.getRemoteAddr();
     }
 
     private String generateFileName(Long userId, String originalFileName) {

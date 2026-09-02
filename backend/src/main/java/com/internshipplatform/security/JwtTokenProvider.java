@@ -32,32 +32,23 @@ public class JwtTokenProvider {
 
     public String generateAccessToken(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpiration);
-
-        return Jwts.builder()
-                .subject(userDetails.getUsername())
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(getSigningKey())
-                .compact();
+        return generateAccessTokenFromEmail(userDetails.getUsername());
     }
 
     public String generateRefreshToken(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + refreshExpiration);
-
-        return Jwts.builder()
-                .subject(userDetails.getUsername())
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .claim("type", "refresh")
-                .signWith(getSigningKey())
-                .compact();
+        return generateRefreshTokenFromEmail(userDetails.getUsername());
     }
 
     public String generateAccessTokenFromEmail(String email) {
+        return generateAccessTokenFromEmail(email, 0);
+    }
+
+    public String generateRefreshTokenFromEmail(String email) {
+        return generateRefreshTokenFromEmail(email, 0);
+    }
+
+    public String generateAccessTokenFromEmail(String email, int tokenVersion) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
 
@@ -65,11 +56,12 @@ public class JwtTokenProvider {
                 .subject(email)
                 .issuedAt(now)
                 .expiration(expiryDate)
+                .claim("tokenVersion", tokenVersion)
                 .signWith(getSigningKey())
                 .compact();
     }
 
-    public String generateRefreshTokenFromEmail(String email) {
+    public String generateRefreshTokenFromEmail(String email, int tokenVersion) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + refreshExpiration);
 
@@ -78,6 +70,7 @@ public class JwtTokenProvider {
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .claim("type", "refresh")
+                .claim("tokenVersion", tokenVersion)
                 .signWith(getSigningKey())
                 .compact();
     }
@@ -131,5 +124,18 @@ public class JwtTokenProvider {
 
     public long getRefreshExpiration() {
         return refreshExpiration;
+    }
+
+    public int getTokenVersionFromToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return claims.get("tokenVersion", Integer.class) != null ? claims.get("tokenVersion", Integer.class) : 0;
+        } catch (Exception ex) {
+            return 0;
+        }
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 
 @Service
@@ -25,14 +26,18 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "User not found with email: " + email));
 
+        // Check if account is locked
+        boolean accountLocked = user.getAccountLockedUntil() != null
+                && user.getAccountLockedUntil().isAfter(LocalDateTime.now());
+
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
                 user.isEnabled(),
                 true, // accountNonExpired
                 true, // credentialsNonExpired
-                true, // accountNonLocked
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                !accountLocked, // accountNonLocked
+                Collections.singletonList(new SimpleGrantedAuthority(user.getRole()))
         );
     }
 }

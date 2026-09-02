@@ -26,7 +26,7 @@ public class MlService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        Map<String, String> body = Map.of("resumeText", resumeText);
+        Map<String, String> body = Map.of("resume_text", resumeText);
         HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
 
         try {
@@ -64,7 +64,7 @@ public class MlService {
                 if (data.containsKey("profile")) {
                     builder.profile((Map<String, Object>) data.get("profile"));
                 }
-                builder.totalJobs(((Number) data.getOrDefault("totalJobs", 0)).intValue());
+                builder.totalJobs(((Number) data.getOrDefault("total_jobs", data.getOrDefault("totalJobs", 0))).intValue());
 
                 var matches = (java.util.List<Map<String, Object>>) data.getOrDefault("matches", java.util.List.of());
                 var jobMatches = matches.stream()

@@ -11,3 +11,9 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Runtime uploaded files
+backend/uploads/
+
+# Local test resumes
+ML/sample_resume-2.pdf
