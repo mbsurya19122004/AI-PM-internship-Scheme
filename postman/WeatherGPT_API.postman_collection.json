@@ -7,39 +7,35 @@
   },
   "variable": [
     { "key": "base_url", "value": "http://localhost:8080" },
-    { "key": "access_token", "value": "" }
+    { "key": "access_token", "value": "" },
+    { "key": "location", "value": "Delhi", "type": "string" }
   ],
   "item": [
     {
       "name": "Phase 1 - Weather",
       "item": [
         {
-          "name": "Current Weather - Delhi",
+          "name": "Current Weather",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/api/weather/current?location=Delhi",
-            "description": "Get real-time weather conditions for Delhi."
+            "url": "{{base_url}}/api/weather/current?location={{location}}",
+            "description": "Get real-time weather conditions for a location.\nSet the {{location}} variable to the city you want (e.g. Mumbai, Chennai, Bengaluru)."
           }
         },
         {
-          "name": "Current Weather - Mumbai",
+          "name": "7-Day Forecast",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/api/weather/current?location=Mumbai"
+            "url": "{{base_url}}/api/weather/forecast?location={{location}}&days=7",
+            "description": "Get a 7-day weather forecast for a location.\nSet the {{location}} variable to the city you want."
           }
         },
         {
-          "name": "7-Day Forecast - Chennai",
+          "name": "16-Day Forecast",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/api/weather/forecast?location=Chennai&days=7"
-          }
-        },
-        {
-          "name": "16-Day Forecast - Bengaluru",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/api/weather/forecast?location=Bengaluru&days=16"
+            "url": "{{base_url}}/api/weather/forecast?location={{location}}&days=16",
+            "description": "Get a 16-day weather forecast for a location.\nSet the {{location}} variable to the city you want."
           }
         },
         {
@@ -56,30 +52,30 @@
       "name": "Phase 2 - Natural Language Chat",
       "item": [
         {
-          "name": "Will it rain tomorrow in Delhi?",
+          "name": "Will it rain tomorrow?",
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/chat/query",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"message\": \"Will it rain tomorrow in Delhi?\"}" }
+            "body": { "mode": "raw", "raw": "{\"message\": \"Will it rain tomorrow in {{location}}?\"}" }
           }
         },
         {
-          "name": "Weather in Mumbai this week",
+          "name": "Weather this week",
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/chat/query",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"message\": \"What's the weather in Mumbai this week?\"}" }
+            "body": { "mode": "raw", "raw": "{\"message\": \"What's the weather in {{location}} this week?\"}" }
           }
         },
         {
-          "name": "Temperature query - Chennai",
+          "name": "Temperature query",
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/chat/query",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"message\": \"How hot will it be in Chennai tomorrow?\"}" }
+            "body": { "mode": "raw", "raw": "{\"message\": \"How hot will it be in {{location}} tomorrow?\"}" }
           }
         },
         {
@@ -90,6 +86,15 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\"message\": \"What is the capital of India?\"}" }
           }
+        },
+        {
+          "name": "Missing location in message",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/chat/query",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"message\": \"What is the weather?\"}" }
+          }
         }
       ]
     },
@@ -97,22 +102,15 @@
       "name": "Phase 3 - Extreme Weather Alerts",
       "item": [
         {
-          "name": "Get Alerts - Delhi",
+          "name": "Get Alerts",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/api/alerts?location=Delhi",
-            "description": "Get active extreme weather alerts for Delhi.\n\nExpected response includes:\n- officialProviderActive: false (no official provider configured yet)\n- providerStatus: message directing to mausam.imd.gov.in\n- alerts: [] (NoOpAlertProvider returns no fabricated alerts)"
+            "url": "{{base_url}}/api/alerts?location={{location}}",
+            "description": "Get active extreme weather alerts for a location.\n\nExpected response includes:\n- officialProviderActive: false (no official provider configured yet)\n- providerStatus: message directing to mausam.imd.gov.in\n- alerts: [] (NoOpAlertProvider returns no fabricated alerts)\n\nSet the {{location}} variable to the city you want."
           }
         },
         {
-          "name": "Get Alerts - Mumbai",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/api/alerts?location=Mumbai"
-          }
-        },
-        {
-          "name": "Get Alerts - Missing Location (400)",
+          "name": "Missing Location (400)",
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/alerts",
@@ -120,7 +118,7 @@
           }
         },
         {
-          "name": "Get Alerts - Unknown Location (404)",
+          "name": "Unknown Location (404)",
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/alerts?location=UnknownCityXYZ123",

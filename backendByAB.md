@@ -21,6 +21,20 @@
 - Removed legacy `RegisterRequest` fields: `college` (was required!), `department`, `graduationYear`
 - Cleaned `UserResponse` and `AdminController` to remove legacy fields
 
+**Phase 2 — Natural-Language Weather Query Interpreter**
+- Deterministic interpreter (`DeterministicWeatherQueryInterpreter`) — keyword + regex + city dictionary, no external LLM
+- `WeatherIntent` enum: CURRENT_WEATHER, FORECAST, RAIN_QUERY, TEMPERATURE_QUERY, WIND_QUERY, HUMIDITY_QUERY, GENERAL_WEATHER, UNSUPPORTED
+- `TimeReference` enum: NOW, TODAY, TOMORROW, NEXT_DAY, THIS_WEEK, THIS_WEEKEND, UNSUPPORTED
+- `WeatherAspect` enum: TEMPERATURE, PRECIPITATION, WIND, HUMIDITY, GENERAL
+- `ParsedWeatherQuery` — normalized interpretation consumed by the orchestration layer
+- Input coverage: current weather, rain, temperature, wind, humidity, forecast (tomorrow/this week/this weekend), umbrella/precipitation phrasing
+- Time coverage: now, today, tonight, tomorrow, next day, this week, this weekend, historical (rejected)
+- Location extraction: preposition phrases (`in Delhi`, `at Mumbai`, `for Chennai`), bare city names from dictionary, multi-word names (e.g. New York)
+- Input sanitization: HTML tags stripped before parsing
+- Missing location → clarification response with controlled follow-up prompt
+- Unknown location → 404 via geocoding failure
+- Non-weather queries → UNSUPPORTED intent, no fabricated answer
+
 **Phase 3 — Extreme Weather Alert Foundation**
 - `WeatherAlertProvider` interface in `com.weathergpt.weather.alert`
 - `AlertType` enum: RAIN, HEAVY_RAIN, THUNDERSTORM, LIGHTNING, CYCLONE, STRONG_WIND, HEATWAVE, COLD_WAVE, FOG, FLOOD, LANDSLIDE, OTHER
@@ -98,30 +112,77 @@
 ### Architecture
 
 ```
-AlertController
+WeatherQueryService
       ↓
-AlertService
+WeatherQueryInterpreter (DeterministicWeatherQueryInterpreter)
       ↓
-WeatherAlertProvider (interface)
+WeatherService → GeocodingProvider → WeatherProvider / AlertProvider
+
+Chat flow:
+  POST /api/chat/query
       ↓
-NoOpAlertProvider (active — no official feed configured yet)
+  WeatherQueryService.processQuery(message)
+      ↓
+  interpreter.interpret(message) → ParsedWeatherQuery(intent, time, aspect, location)
+      ↓
+  if location missing → clarification
+  if location unknown → 404
+  if intent UNSUPPORTED → controlled response
+  else → WeatherService + response generator
+
+Alert flow:
+  GET /api/alerts?location={location}
+      ↓
+  AlertController → AlertService → GeocodingProvider → WeatherAlertProvider
+      ↓
+  NoOpAlertProvider (active — no official feed configured yet)
 
 Future providers:
       ├── ImdAlertProvider (IMD official warnings)
       ├── CapFeedAlertProvider (Common Alerting Protocol)
       └── NdmaAlertProvider (NDMA feeds)
-```
 
-**Data flow:**
-1. `GET /api/alerts?location=Delhi`
+Data flow (alerts):
+1. `GET /api/alerts?location={location}`
 2. `AlertController` → validates location param
-3. `AlertService.getAlerts("Delhi")`
-4. `GeocodingProvider.resolve("Delhi")` → `GeoLocation`
+3. `AlertService.getAlerts(locationQuery)`
+4. `GeocodingProvider.resolve(locationQuery)` → `GeoLocation`
 5. `WeatherAlertProvider.getAlerts(location)` → `List<WeatherAlertDto>`
 6. Classification enforcement: non-official providers cannot produce `OFFICIAL_WARNING`
 7. Return `AlertResponse` with `officialProviderActive`, `providerStatus`, alerts list
 
+Data flow (weather chat):
+1. `POST /api/chat/query` with `{"message": "..."}`
+2. `WeatherQueryService.processQuery(message)`
+3. `DeterministicWeatherQueryInterpreter.interpret(message)` → ParsedWeatherQuery
+4. `extractLocation` → city dictionary or preposition regex; null when not found
+5. `detectTimeReference` → NOW/TODAY/TOMORROW/NEXT_DAY/THIS_WEEK/THIS_WEEKEND/UNSUPPORTED
+6. `detectIntent` → one of 8 intents based on keyword sets
+7. `detectAspect` → TEMPERATURE / PRECIPITATION / WIND / HUMIDITY / GENERAL
+8. If location missing → clarification; if unknown → 404; if UNSUPPORTED → controlled message
+9. Otherwise → `WeatherService` (geocode + provider) + `WeatherResponseGenerator`
+
 ### API Endpoints
+
+**GET /api/weather/current?location={location}**
+
+Get real-time weather conditions for a location.
+
+**GET /api/weather/forecast?location={location}&days={n}**
+
+Get a multi-day weather forecast (days clamped to 1–16, default 7).
+
+**POST /api/chat/query**
+
+Natural-language weather query. Request body: `{"message": "..."}`.
+
+Interpreter input coverage:
+- Intents: CURRENT_WEATHER, FORECAST, RAIN_QUERY, TEMPERATURE_QUERY, WIND_QUERY, HUMIDITY_QUERY, GENERAL_WEATHER, UNSUPPORTED
+- Time references: NOW, TODAY, TOMORROW, NEXT_DAY, THIS_WEEK, THIS_WEEKEND, UNSUPPORTED
+- Aspects: TEMPERATURE, PRECIPITATION, WIND, HUMIDITY, GENERAL
+- Location extraction: preposition phrases and bare city names from dictionary
+- Input sanitization: HTML stripped before parsing
+- Missing location → clarification; unknown location → 404; non-weather → UNSUPPORTED
 
 **GET /api/alerts?location={location}**
 
@@ -150,14 +211,14 @@ Test breakdown:
 - `AuthControllerTest`: 28 (authentication flow)
 - `DeterministicWeatherQueryInterpreterTest`: 18 (NL query parsing)
 - `WeatherQueryFlowTest`: 11 (end-to-end NL weather queries)
-- `AlertServiceTest`: 8 (Phase 3 — alert orchestration)
+- `AlertServiceTest`: 8 (alert orchestration)
 - `WeatherServiceTest`: 8 (weather service unit)
 - `JwtTokenProviderTest`: 6 (JWT)
 - `WeatherResponseGeneratorTest`: 6 (response generation)
-- `AlertControllerTest`: 5 (Phase 3 — alert endpoint)
+- `AlertControllerTest`: 5 (alert endpoint)
 - `WeatherControllerTest`: 7 (weather endpoints)
 - `OpenMeteoGeocodingProviderTest`: 4 (geocoding provider)
-- `NoOpAlertProviderTest`: 4 (Phase 3 — no-op provider)
+- `NoOpAlertProviderTest`: 4 (no-op provider)
 - `OpenMeteoWeatherProviderTest`: 3 (weather provider)
 
 ### Runtime Verification
@@ -171,7 +232,7 @@ Authentication: all 28 auth tests pass
 
 - Official IMD / NDMA alert provider (Phase 3 placeholder architecture built)
 - Conversation persistence (Phase 5)
-- LLM query understanding (Phase 6)
+- LLM query understanding (Phase 6) — interpreter currently supports a deterministic subset of weather query shapes; an LLM would expand intent/time/aspect extraction and multi-intent/conversational follow-ups
 - Multilingual support (Phase 7)
 - Historical climate analytics (Phase 8)
 - Sector-specific decision support (Phase 9)

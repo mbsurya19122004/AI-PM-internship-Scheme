@@ -20,11 +20,11 @@ All responses follow the envelope format:
 Get real-time weather conditions for a location.
 
 **Query Parameters:**
-- `location` (required) — Human-readable location name (e.g. "Delhi", "Mumbai")
+- `location` (required) — Human-readable location name (e.g. `{{location}}`)
 
 **Example:**
 ```bash
-curl "http://localhost:8080/api/weather/current?location=Delhi"
+curl "http://localhost:8080/api/weather/current?location={{location}}"
 ```
 
 **Response:**
@@ -33,7 +33,7 @@ curl "http://localhost:8080/api/weather/current?location=Delhi"
   "success": true,
   "message": "Current weather retrieved",
   "data": {
-    "location": { "name": "Delhi", "latitude": 28.6519, "longitude": 77.2315, "country": "India" },
+    "location": { "name": "{{location}}", "latitude": 28.6519, "longitude": 77.2315, "country": "India" },
     "temperature": 32.5,
     "apparentTemperature": 36.2,
     "humidity": 68,
@@ -59,7 +59,7 @@ Get a multi-day weather forecast.
 
 **Example:**
 ```bash
-curl "http://localhost:8080/api/weather/forecast?location=Mumbai&days=7"
+curl "http://localhost:8080/api/weather/forecast?location={{location}}&days=7"
 ```
 
 **Response:**
@@ -68,7 +68,7 @@ curl "http://localhost:8080/api/weather/forecast?location=Mumbai&days=7"
   "success": true,
   "message": "Weather forecast retrieved",
   "data": {
-    "location": { "name": "Mumbai", "latitude": 19.0728, "longitude": 72.8826, "country": "India" },
+    "location": { "name": "{{location}}", "latitude": 19.0728, "longitude": 72.8826, "country": "India" },
     "timezone": "Asia/Kolkata",
     "days": [
       {
@@ -96,14 +96,14 @@ Ask a natural-language weather question.
 
 **Request Body:**
 ```json
-{ "message": "Will it rain tomorrow in Delhi?" }
+{ "message": "Will it rain tomorrow in {{location}}?" }
 ```
 
 **Example:**
 ```bash
 curl -X POST "http://localhost:8080/api/chat/query" \
   -H "Content-Type: application/json" \
-  -d '{"message": "Will it rain tomorrow in Delhi?"}'
+  -d '{"message": "Will it rain tomorrow in {{location}}?"}'
 ```
 
 **Response:**
@@ -112,10 +112,10 @@ curl -X POST "http://localhost:8080/api/chat/query" \
   "success": true,
   "message": "Query processed",
   "data": {
-    "answer": "Yes. Rain is likely tomorrow in Delhi with a 80% chance of precipitation. Consider carrying an umbrella.",
+    "answer": "Yes. Rain is likely tomorrow in {{location}} with a 80% chance of precipitation. Consider carrying an umbrella.",
     "intent": "RAIN_QUERY",
     "timeReference": "TOMORROW",
-    "location": { "name": "Delhi", "latitude": 28.6519, "longitude": 77.2315 },
+    "location": { "name": "{{location}}", "latitude": 28.6519, "longitude": 77.2315 },
     "advisories": ["Consider carrying an umbrella."]
   }
 }
@@ -123,7 +123,20 @@ curl -X POST "http://localhost:8080/api/chat/query" \
 
 **Supported intents:** CURRENT_WEATHER, FORECAST, RAIN_QUERY, TEMPERATURE_QUERY, WIND_QUERY, HUMIDITY_QUERY, GENERAL_WEATHER, UNSUPPORTED
 
-**Supported time references:** NOW, TODAY, TOMORROW, NEXT_DAY, THIS_WEEK, THIS_WEEKEND
+**Supported time references:** NOW, TODAY, TOMORROW, NEXT_DAY, THIS_WEEK, THIS_WEEKEND, UNSUPPORTED
+
+**Supported aspects:** TEMPERATURE, PRECIPITATION, WIND, HUMIDITY, GENERAL
+
+**Interpreter input coverage:**
+- Location extraction: preposition phrases (`in Delhi`, `at Mumbai`, `for Chennai`) and bare city names from dictionary
+- Time references: now, today, tonight, tomorrow, next day, this week, this weekend, historical (rejected)
+- Weather aspects: rain/precipitation, temperature, wind, humidity
+- Input sanitization: HTML stripped before parsing
+- Missing location → clarification response
+- Unknown location → 404
+- Non-weather queries → UNSUPPORTED, no fabricated answer
+
+**Note:** The `{{location}}` variable is a placeholder. Set it to any city the interpreter or geocoding provider can resolve (e.g. Delhi, Mumbai, Bengaluru, Chennai, Kolkata, New York, London, Tokyo).
 
 ---
 
@@ -138,7 +151,7 @@ Get active extreme weather alerts and advisories for a location.
 
 **Example:**
 ```bash
-curl "http://localhost:8080/api/alerts?location=Delhi"
+curl "http://localhost:8080/api/alerts?location={{location}}"
 ```
 
 **Response (no official provider configured):**
@@ -147,7 +160,7 @@ curl "http://localhost:8080/api/alerts?location=Delhi"
   "success": true,
   "message": "Alerts retrieved",
   "data": {
-    "location": "Delhi",
+    "location": "{{location}}",
     "latitude": 28.6519,
     "longitude": 77.2315,
     "alerts": [],
@@ -172,7 +185,7 @@ curl "http://localhost:8080/api/alerts?location=Delhi"
   "issuedAt": "2026-09-05T10:00:00Z",
   "effectiveFrom": "2026-09-05T12:00:00Z",
   "effectiveUntil": "2026-09-06T00:00:00Z",
-  "affectedLocations": ["Delhi"]
+  "affectedLocations": ["{{location}}"]
 }
 ```
 
@@ -191,6 +204,8 @@ curl "http://localhost:8080/api/alerts?location=Delhi"
 
 Register a new user account.
 
+Request body fields: `fullName`, `email`, `phoneNumber`, `password`, `confirmPassword`.
+
 ```json
 {
   "fullName": "Jane Doe",
@@ -203,11 +218,17 @@ Register a new user account.
 
 ### POST /api/auth/login
 
+Request body fields: `email`, `password`.
+
 ```json
 { "email": "jane@example.com", "password": "Secure@1234" }
 ```
 
 ### POST /api/auth/refresh
+
+Refresh the access token using a valid refresh token.
+
+Request body fields: `refreshToken`.
 
 ```json
 { "refreshToken": "<token>" }
@@ -215,11 +236,17 @@ Register a new user account.
 
 ### GET /api/auth/me
 
+Get the currently authenticated user's profile.
+
 Requires `Authorization: Bearer <token>` header.
 
 ### POST /api/auth/change-password
 
+Change the authenticated user's password.
+
 Requires authentication.
+
+Request body fields: `currentPassword`, `newPassword`, `confirmNewPassword`.
 
 ```json
 {
@@ -231,13 +258,21 @@ Requires authentication.
 
 ### POST /api/auth/forgot-password
 
+Request a password reset link for the given email.
+
+Request body fields: `email`.
+
+Always returns success to prevent user enumeration.
+
 ```json
 { "email": "jane@example.com" }
 ```
 
-Always returns success to prevent user enumeration.
-
 ### POST /api/auth/reset-password
+
+Reset the password using a valid reset token.
+
+Request body fields: `token`, `newPassword`, `confirmNewPassword`.
 
 ```json
 {
@@ -249,7 +284,11 @@ Always returns success to prevent user enumeration.
 
 ### GET /api/auth/verify-email?token={token}
 
+Verify the user's email using a valid verification token.
+
 ### POST /api/auth/resend-verification
+
+Resend the verification email to the authenticated user.
 
 Requires authentication.
 
@@ -262,6 +301,12 @@ Requires authentication.
 List all registered users.
 
 ### PATCH /api/admin/users/{userId}/role
+
+Update a user's role.
+
+Path parameter: `userId` — the ID of the user to update.
+
+Request body fields: `role`.
 
 ```json
 { "role": "ROLE_ADMIN" }
