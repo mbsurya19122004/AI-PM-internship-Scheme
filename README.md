@@ -1,427 +1,215 @@
-# Internship & Job Recommendation Platform
+# WeatherGPT
 
-An AI-powered career recommendation platform designed to help students discover **internships and entry-level job opportunities that best match their skills, education, experience, and career inter[...]
+An intelligent conversational weather intelligence and disaster decision-support platform aligned with the **Ministry of Earth Sciences (MoES) / India Meteorological Department (IMD)** mission and the **Disaster Management** theme.
 
-Students can upload their resume, and the platform analyzes it using an AI-powered pipeline to understand their profile and recommend relevant opportunities based on their qualifications and skills[...]
-
-The project is being developed as part of a **PM Internship Scheme-focused initiative**, with the goal of making internship discovery more personalized, accessible, and efficient for students.
+WeatherGPT makes meteorological information easier to access and understand through natural-language interactions, real-time weather data, and early warning architecture.
 
 ---
 
-## Project Overview
+## Organization
 
-Finding a suitable internship can be difficult for students because job platforms often provide thousands of listings without explaining **which opportunities are actually relevant to a particular[...]
-
-Our platform addresses this problem by transforming a student's resume into a structured candidate profile and matching that profile against available internships and jobs.
-
-Instead of simply searching based on keywords, the system aims to understand:
-
-* What the student knows
-* What technologies and skills they possess
-* Their educational background
-* Their previous experience
-* Their projects
-* Their areas of interest
-* Their current career level
-* What roles they are realistically qualified for
-
-The platform then produces a ranked list of opportunities that are most relevant to the student.
+| Field        | Value                                     |
+| ------------ | ----------------------------------------- |
+| Organization | Ministry of Earth Sciences (MoES)         |
+| Department   | India Meteorological Department (IMD)     |
+| Category     | Software                                  |
+| Theme        | Disaster Management                       |
 
 ---
 
-# How It Works
+## IMPLEMENTED
 
-The platform follows an AI-driven recommendation pipeline:
+### Phase 1 — Real-Time Weather Intelligence
 
-```text
-                ┌─────────────────┐
-                │  Student Resume │
-                └────────┬────────┘
-                         │
-                         ▼
-                ┌─────────────────┐
-                │ Resume Analysis │
-                │      (ML)       │
-                └────────┬────────┘
-                         │
-                         ▼
-                ┌─────────────────┐
-                │ Candidate       │
-                │ Profile         │
-                └────────┬────────┘
-                         │
-                         ▼
-                ┌─────────────────┐
-                │ Job / Internship│
-                │ Matching Engine │
-                └────────┬────────┘
-                         │
-                         ▼
-                ┌─────────────────┐
-                │ Ranked          │
-                │ Recommendations │
-                └─────────────────┘
+- Real-time weather conditions by location
+- Multi-day weather forecasts (up to 16 days)
+- Location geocoding (human-readable name → coordinates)
+- Open-Meteo API integration (free, no API key required)
+- Weather provider abstraction (pluggable, provider-independent)
+- Normalized weather DTOs (raw provider payloads never exposed)
+- WMO weather code normalization with human-readable descriptions
+
+**Endpoints:**
+
+```
+GET /api/weather/current?location={location}
+GET /api/weather/forecast?location={location}&days={1-16}
 ```
 
-The core idea is to convert unstructured resume information into meaningful candidate attributes and use those attributes to determine which opportunities provide the strongest match.
+### Phase 2 — Natural-Language Weather Queries
 
----
+- Deterministic natural-language weather query interpreter
+- Supported intents: CURRENT\_WEATHER, FORECAST, RAIN\_QUERY, TEMPERATURE\_QUERY, WIND\_QUERY, HUMIDITY\_QUERY, GENERAL\_WEATHER, UNSUPPORTED
+- Supported time references: NOW, TODAY, TOMORROW, NEXT\_DAY, THIS\_WEEK, THIS\_WEEKEND
+- Conversational response generation grounded in real provider data
+- Simple data-driven automated advisories (clearly labelled, never presented as official warnings)
+- Query interpreter interface supporting future LLM-based implementation
 
-# Key Features
+**Endpoint:**
 
-## Resume-Based Recommendations
-
-Students can provide their resume as the primary source of information.
-
-The AI extracts relevant information such as:
-
-* Name and basic profile information
-* Education
-* Skills
-* Programming languages
-* Frameworks and technologies
-* Projects
-* Work experience
-* Certifications
-* Relevant achievements
-* Areas of interest
-
-This information is transformed into a structured representation of the candidate.
-
----
-
-## AI-Powered Resume Understanding
-
-The ML layer uses **Python, Ollama, and Gemma 4** to analyze resume content.
-
-Rather than relying entirely on traditional keyword matching, the system uses an LLM to understand the context of the candidate's experience.
-
-For example, a resume containing:
-
-> Python, Pandas, NumPy, Scikit-learn, FastAPI, Machine Learning project
-
-can be interpreted as a candidate with a profile oriented toward:
-
-* Machine Learning
-* Data Science
-* Python Development
-* Backend Development
-* AI/ML Engineering
-
-This allows the recommendation system to identify opportunities even when the wording in the resume and job description differs.
-
----
-
-# Internship & Job Matching
-
-After analyzing a resume, the system creates a candidate profile that can be compared against available opportunities.
-
-Matching can take into account factors such as:
-
-| Candidate Attribute | Matching Criteria                  |
-| ------------------- | ---------------------------------- |
-| Skills              | Required & preferred skills        |
-| Education           | Degree / field / qualification     |
-| Experience          | Required experience level          |
-| Projects            | Relevance to role                  |
-| Technologies        | Programming languages & frameworks |
-| Interests           | Candidate's preferred domain       |
-| Role                | Job/internship type                |
-| Location            | Opportunity location               |
-| Eligibility         | Academic and other requirements    |
-
-The result is a **relevance score** for each opportunity.
-
----
-
-# Recommendation Ranking
-
-Instead of returning a large list of jobs, the platform ranks opportunities based on how well they match the candidate.
-
-For example:
-
-```text
-Candidate Profile
-       │
-       ├── Python
-       ├── Machine Learning
-       ├── FastAPI
-       ├── SQL
-       └── Data Analysis
-              │
-              ▼
-       Matching Engine
-              │
-       ┌──────┼───────────┐
-       ▼      ▼           ▼
-     94%     87%         71%
-       │      │           │
-       ▼      ▼           ▼
-    ML Intern Data Intern Backend Intern
+```
+POST /api/chat/query
+Body: { "message": "Will it rain tomorrow in Delhi?" }
 ```
 
-This makes the recommendations more useful than a conventional job search system based purely on keyword overlap.
+### Phase 3 — Extreme Weather Alert Foundation
 
----
+- `WeatherAlertProvider` interface (pluggable, supports multiple future providers)
+- Normalized `WeatherAlertDto` with all standard alert fields
+- `AlertType` enum (RAIN, HEAVY\_RAIN, THUNDERSTORM, CYCLONE, FLOOD, LANDSLIDE, etc.)
+- `AlertSeverity` enum (LOW, MODERATE, SEVERE, EXTREME, UNKNOWN)
+- `AlertInformationClass` enum — **mandatory classification**: OFFICIAL\_WARNING, AUTOMATED\_ADVISORY, OBSERVATION
+- `NoOpAlertProvider` — truthful placeholder that returns no alerts and correctly identifies itself as non-official
+- `AlertService` — provider orchestration with classification enforcement
+- Safety guard: non-official providers cannot produce OFFICIAL\_WARNING alerts
+- Provider failure handling with graceful degradation
+- Location-based alert query endpoint
 
-# System Architecture
+**Endpoint:**
 
-The project is divided into two major backend components.
-
-### ML Service
-
-Built using:
-
-* **Python**
-* **FastAPI**
-* **Ollama**
-* **Gemma 4**
-
-The ML service is responsible for AI-related operations including resume understanding, candidate profile extraction, semantic analysis, and recommendation-related intelligence.
-
-### Application Backend
-
-Built using:
-
-* **Node.js**
-
-The Node.js backend handles the core application functionality and acts as the main application layer connecting users, opportunities, and the ML service.
-
----
-
-# ML Service
-
-The ML service provides an API layer around the AI functionality.
-
-FastAPI is used to expose ML capabilities as APIs, allowing the rest of the application to communicate with the AI system without being tightly coupled to the Python implementation.
-
-Conceptually:
-
-```text
-             Node.js Backend
-                    │
-                    │ API Request
-                    ▼
-             ┌──────────────┐
-             │   FastAPI    │
-             │  ML Service  │
-             └──────┬───────┘
-                    │
-                    ▼
-               ┌─────────┐
-               │ Ollama  │
-               └────┬────┘
-                    │
-                    ▼
-               ┌─────────┐
-               │ Gemma 4 │
-               └─────────┘
+```
+GET /api/alerts?location={location}
 ```
 
-This separation also makes it possible to improve or replace the ML components independently from the main application backend.
+**Response always includes:**
+- `officialProviderActive` — whether a verified official source is configured
+- `providerStatus` — human-readable provider status message
+- `informationClass` on each alert — OFFICIAL\_WARNING / AUTOMATED\_ADVISORY / OBSERVATION
+
+### Authentication and Security (Supporting Infrastructure)
+
+- User registration and login
+- JWT access and refresh tokens
+- Token versioning (invalidates all tokens on password change)
+- Password reset (email token, 15-minute expiry)
+- Email verification
+- Account lockout after 5 failed login attempts
+- Rate limiting on password reset requests
+- RBAC (ROLE\_USER, ROLE\_ADMIN)
+- Admin user management and role assignment
+- Security event audit logging
+- Input sanitization (XSS prevention)
 
 ---
 
-# AI Pipeline
+## PLANNED (NOT YET IMPLEMENTED)
 
-The AI component can be viewed as several stages.
+- Official IMD / NDMA alert provider integration
+- Conversation context and persistence
+- LLM-based query understanding (optional enhancement, deterministic remains active)
+- Multilingual support (Indian languages)
+- Voice interaction (speech-to-text / text-to-speech)
+- Historical weather and climate analytics
+- Weather risk assessment engine (Phase 4)
+- Sector-specific decision support: agriculture, aviation, marine, disaster preparedness
+- NWP / GFS / WRF numerical weather prediction model integration
+- Real-time event ingestion (WebSocket / MQTT)
 
-### 1. Resume Processing
+---
 
-The submitted resume is converted into usable text.
+## Architecture
 
-### 2. Information Extraction
-
-The LLM identifies important candidate information such as skills, education, projects, and experience.
-
-### 3. Candidate Profiling
-
-The extracted information is transformed into a structured candidate profile.
-
-Example:
-
-```json
-{
-  "skills": [
-    "Python",
-    "Machine Learning",
-    "FastAPI",
-    "SQL"
-  ],
-  "domains": [
-    "Artificial Intelligence",
-    "Data Science"
-  ],
-  "experience_level": "Student",
-  "education": "Computer Science",
-  "preferred_roles": [
-    "ML Intern",
-    "Data Science Intern"
-  ]
-}
+```
+WeatherController    ChatController     AlertController
+        ↓                   ↓                  ↓
+WeatherService      WeatherQueryService    AlertService
+        ↓              ↓          ↓            ↓
+GeocodingProvider  QueryInterpreter  ResponseGenerator  WeatherAlertProvider
+        ↓               ↓                           ↓
+OpenMeteoGeocodingProvider  DeterministicInterpreter  NoOpAlertProvider (placeholder)
+        ↓
+  OpenMeteoWeatherProvider
 ```
 
-### 4. Opportunity Analysis
+### Key Architectural Rules
 
-Internship and job descriptions can similarly be analyzed to identify:
-
-* Required skills
-* Preferred skills
-* Role
-* Domain
-* Experience requirements
-* Eligibility requirements
-
-### 5. Matching
-
-The candidate profile and opportunity profile are compared to determine their relevance.
-
-### 6. Ranking
-
-Opportunities are ranked so that the most suitable internships and jobs appear first.
+- Controllers are thin — no business logic, no provider-specific parsing
+- Services orchestrate business logic
+- External APIs are isolated behind provider interfaces
+- Raw provider payloads are never exposed to API clients
+- Query interpretation is separate from weather data retrieval
+- Weather responses are grounded in actual provider data
+- Automated advisories are never presented as official government warnings
+- No alert is fabricated — if no official provider is configured, the endpoint returns an empty list with a truthful provider status
 
 ---
 
-# Beyond Keyword Matching
+## Tech Stack
 
-A major objective of the project is to move beyond simple keyword-based recommendation.
+| Component          | Technology                      |
+| ------------------ | ------------------------------- |
+| Backend            | Java 17, Spring Boot 3.2        |
+| Database           | H2 (in-memory, dev); swap to PostgreSQL for production |
+| Weather API        | Open-Meteo (free, no API key)   |
+| Geocoding API      | Open-Meteo Geocoding (free)     |
+| Authentication     | JWT (JJWT 0.12)                 |
+| Build              | Maven                           |
 
-For example, consider a student who has:
+---
 
-```text
-TensorFlow
-PyTorch
-Python
-Neural Networks
-Computer Vision
+## Running Locally
+
+```bash
+cd backend
+export JWT_SECRET=<base64-encoded-secret-min-256-bits>
+mvn spring-boot:run
 ```
 
-A traditional keyword-based system might only recommend jobs explicitly containing those exact terms.
+**Test the API:**
 
-An AI-based system can understand that this candidate may also be suitable for roles such as:
+```bash
+# Current weather
+curl "http://localhost:8080/api/weather/current?location=Delhi"
 
-* AI Engineer Intern
-* Computer Vision Intern
-* Deep Learning Intern
-* Machine Learning Intern
-* Research Intern
-* Applied AI Intern
+# 7-day forecast
+curl "http://localhost:8080/api/weather/forecast?location=Mumbai&days=7"
 
-This semantic understanding is one of the core advantages of using an LLM-based recommendation layer.
+# Natural-language query
+curl -X POST "http://localhost:8080/api/chat/query" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Will it rain tomorrow in Chennai?"}'
 
----
-
-# PM Internship Scheme Focus
-
-The platform is particularly designed around the needs of students searching for internships.
-
-The goal is to reduce the gap between:
-
-**"What skills does this student have?"**
-
-and
-
-**"Which internship is actually suitable for this student?"**
-
-Instead of expecting students to understand complex job descriptions and manually evaluate hundreds of opportunities, the platform provides an intelligent first layer of guidance.
-
-This can be especially valuable for students who:
-
-* Are applying for their first internship
-* Are unsure which roles match their skills
-* Have limited professional experience
-* Have difficulty interpreting job requirements
-* Want to discover roles beyond obvious keyword matches
-
----
-
-# Technology Stack
-
-| Component           | Technology |
-| ------------------- | ---------- |
-| ML / AI             | Python     |
-| ML API              | FastAPI    |
-| LLM Runtime         | Ollama     |
-| Language Model      | Gemma 4    |
-| Application Backend | Node.js    |
-
----
-
-# Future Scope
-
-The platform can be extended beyond basic resume-to-job matching.
-
-Potential future improvements include:
-
-### Personalized Skill Gap Analysis
-
-Identify skills a student is missing for their desired internship.
-
-```text
-Target Role: Machine Learning Intern
-
-Current Skills:
-✓ Python
-✓ NumPy
-✓ Pandas
-✓ Machine Learning
-
-Missing / Recommended:
-○ PyTorch
-○ Docker
-○ MLOps
-```
-
-### Explainable Recommendations
-
-Instead of simply showing a score, the platform can explain:
-
-> **Why is this internship recommended?**
-
-For example:
-
-* Strong Python match
-* Relevant ML projects
-* Meets education requirements
-* Experience level matches
-* 8/10 required skills matched
-
-### Career Path Recommendations
-
-The platform could recommend not only jobs, but potential career directions based on the student's existing skills.
-
-### Personalized Learning Recommendations
-
-If a student is close to qualifying for a role, the system could recommend skills or learning resources that would improve their chances.
-
-### Application Prioritization
-
-Students could receive recommendations such as:
-
-```text
-Apply Immediately
-Strong match — 92%
-
-Good Match
-Strong potential — 81%
-
-Skill Gap
-Requires additional skills — 63%
-
-Low Match
-Currently not recommended — 34%
+# Extreme weather alerts
+curl "http://localhost:8080/api/alerts?location=Delhi"
 ```
 
 ---
 
-# Project Vision
+## Tests
 
-The long-term vision is to build an **AI-powered career discovery and internship recommendation platform for students**.
+```bash
+cd backend
+mvn clean test
+```
 
-Rather than treating a resume as a static document, the platform treats it as a representation of a student's evolving skills, interests, education, and potential.
+Current status: **108 tests, 0 failures, 0 errors**
 
-The system aims to answer a simple but important question:
+---
 
-> **"Given what I know and what I have done, which opportunities are actually right for me?"**
+## Important: Alert Information Classification
 
-By combining **LLM-based resume understanding, structured candidate profiling, semantic job matching, and recommendation ranking**, the project aims to make internship discovery more personalized[...]
+Every alert or advisory returned by the API includes an `informationClass` field. Consumers **must** present this to users:
+
+| Class                 | Meaning                                                                 |
+| --------------------- | ----------------------------------------------------------------------- |
+| `OFFICIAL_WARNING`    | Originates from a verified government source (e.g. IMD, NDMA)          |
+| `AUTOMATED_ADVISORY`  | System-generated from weather data thresholds. Not a government warning |
+| `OBSERVATION`         | Factual statement from observed conditions. Not a warning               |
+
+**WeatherGPT never fabricates official government warnings.**
+
+Until a real official alert provider is integrated, `GET /api/alerts` returns an empty alert list with `officialProviderActive: false` and a `providerStatus` message directing users to check `mausam.imd.gov.in`.
+
+---
+
+## Future Roadmap
+
+1. Official extreme weather alert provider integration (IMD / CAP feeds)
+2. Disaster-oriented location-based alert intelligence
+3. Conversation persistence and context
+4. Multilingual support (Hindi, Bengali, Tamil, Telugu, and other Indian languages)
+5. Voice interaction
+6. Historical climate analytics
+7. NWP/GFS/WRF integration
+8. Sector-specific decision support (agriculture, aviation, marine, disaster preparedness)
+9. Scalable real-time ingestion (MQTT / WebSocket)

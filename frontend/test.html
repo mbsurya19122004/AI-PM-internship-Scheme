@@ -1,542 +1,294 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Test Console</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeatherGPT API Test Console</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<style>
+:root{font-family:Arial,sans-serif;color:#e8eef7;background:#0b1220}
+*{box-sizing:border-box} body{margin:0;background:#0b1220}
+header{padding:22px;background:linear-gradient(135deg,#0d47a1,#1565c0,#0288d1)}
+h1{margin:0 0 6px}.sub{opacity:.9}
+main{max-width:1200px;margin:auto;padding:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px}
+.card{background:#111c2e;border:1px solid #23334d;border-radius:12px;padding:16px}
+.card.wide{grid-column:1/-1}
+h2{margin:0 0 12px;font-size:18px;color:#90caf9}
+label{display:block;margin:8px 0 4px;font-size:13px;color:#b7c4d6}
+input,select,textarea{width:100%;padding:9px;border-radius:7px;border:1px solid #334a6d;background:#0a1424;color:#fff}
+textarea{min-height:90px;resize:vertical}
+button{margin:10px 6px 0 0;padding:9px 13px;border:0;border-radius:7px;background:#1976d2;color:white;cursor:pointer}
+button:hover{background:#2196f3}.secondary{background:#37474f}.danger{background:#b71c1c}
+pre{white-space:pre-wrap;word-break:break-word;background:#07101d;border:1px solid #22334d;border-radius:8px;padding:10px;min-height:54px;max-height:350px;overflow:auto}
+.status{font-weight:bold}.ok{color:#69f0ae}.bad{color:#ff8a80}.muted{color:#aab7c8;font-size:13px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.token{font-size:12px;word-break:break-all}
+</style>
 </head>
 <body>
+<header>
+  <h1>WeatherGPT Backend API Test Console</h1>
+  <div class="sub">Current WeatherGPT Phase 1 + Phase 2 backend — weather, forecast, natural-language queries and preserved auth/security APIs.</div>
+</header>
 
-<h1>Backend API Test Console By DADDY CAPTO</h1>
-
-<div>
-    <label>API URL:</label>
-    <input type="text" id="baseUrl" value="http://localhost:8080" size="40">
-    <button onclick="checkHealth()">Check Connection</button>
-    <span id="statusText">Not connected</span>
+<main>
+<div class="card wide">
+  <h2>Connection</h2>
+  <div class="row">
+    <div><label>Backend Base URL</label><input id="baseUrl" value="http://localhost:8080"></div>
+    <div><label>Connection Status</label><div id="statusText" class="status muted">Not checked</div></div>
+  </div>
+  <button onclick="checkConnection()">Check Backend Connection</button>
+  <button class="secondary" onclick="clearTokens()">Clear Tokens</button>
+  <div id="tokens" class="token muted"></div>
 </div>
 
-<hr>
+<div class="grid">
+  <section class="card">
+    <h2>Authentication</h2>
+    <label>Full name</label><input id="regName" value="WeatherGPT Test User">
+    <label>Email</label><input id="regEmail" type="email" value="test@example.com">
+    <label>Phone number</label><input id="regPhone" value="5550001234">
+    <label>College</label><input id="regCollege" value="Test College">
+    <label>Password</label><input id="regPass" type="password" value="Pass@1234">
+    <label>Confirm password</label><input id="regPass2" type="password" value="Pass@1234">
+    <button onclick="doRegister()">POST Register</button>
+    <pre id="regRes"></pre>
+  </section>
 
-<!-- REGISTER -->
-<h3>1. Register</h3>
-<label>Name:</label> <input type="text" id="regName" ><br>
-<label>Email:</label> <input type="email" id="regEmail"><br>
-<label>Phone:</label> <input type="text" id="regPhone" ><br>
-<label>College:</label> <input type="text" id="regCollege" ><br>
-<label>Dept:</label> <input type="text" id="regDept" >
-<label>Year:</label> <input type="text" id="regYear" ><br>
-<label>Password:</label> <input type="password" id="regPass">
-<label>Confirm:</label> <input type="password" id="regPass2"><br>
-<button onclick="doRegister()">Register</button>
-<pre id="regRes"></pre>
+  <section class="card">
+    <h2>Login & Session</h2>
+    <label>Email</label><input id="loginEmail" type="email" value="test@example.com">
+    <label>Password</label><input id="loginPass" type="password" value="Pass@1234">
+    <button onclick="doLogin()">POST Login</button>
+    <button onclick="doRefresh()">POST Refresh</button>
+    <button onclick="doGetMe()">GET /me</button>
+    <button class="secondary" onclick="doGetMeNoAuth()">GET /me without token</button>
+    <pre id="authRes"></pre>
+  </section>
 
-<hr>
+  <section class="card">
+    <h2>Current Weather</h2>
+    <label>Location</label><input id="currentLocation" value="Delhi">
+    <button onclick="getCurrentWeather()">GET Current Weather</button>
+    <pre id="currentRes"></pre>
+  </section>
 
-<!-- LOGIN -->
-<h3>2. Login</h3>
-<label>Email:</label> <input type="email" id="loginEmail">
-<label>Password:</label> <input type="password" id="loginPass">
-<button onclick="doLogin()">Login</button>
-<pre id="loginRes"></pre>
-<div id="tokens"></div>
+  <section class="card">
+    <h2>Forecast</h2>
+    <label>Location</label><input id="forecastLocation" value="Mumbai">
+    <label>Days (1–16)</label><input id="forecastDays" type="number" min="1" max="16" value="7">
+    <button onclick="getForecast()">GET Forecast</button>
+    <pre id="forecastRes"></pre>
+  </section>
 
-<hr>
+  <section class="card wide">
+    <h2>Natural Language Weather Query — Phase 2</h2>
+    <label>Ask WeatherGPT</label>
+    <textarea id="chatQuery">Will it rain tomorrow in Mumbai?</textarea>
+    <button onclick="sendChatQuery()">POST /api/chat/query</button>
+    <div class="muted">Examples: “What is the weather in Delhi?”, “How hot will Bengaluru be tomorrow?”, “Is it windy in Kolkata?”</div>
+    <pre id="chatRes"></pre>
+  </section>
 
-<!-- REFRESH -->
-<h3>3. Refresh Token</h3>
-<button onclick="doRefresh()">Refresh</button>
-<pre id="refreshRes"></pre>
+  <section class="card">
+    <h2>Email Verification</h2>
+    <label>Verification token</label><input id="verifyToken" placeholder="Paste token">
+    <button onclick="doVerifyEmail()">Verify Email</button>
+    <button onclick="doResendVerification()">Resend Verification</button>
+    <pre id="verifyRes"></pre>
+  </section>
 
-<hr>
+  <section class="card">
+    <h2>Password Reset</h2>
+    <label>Email for reset</label><input id="forgotEmail" type="email" value="test@example.com">
+    <button onclick="doForgotPassword()">Forgot Password</button>
+    <label>Reset token</label><input id="resetToken">
+    <label>New password</label><input id="newPass" type="password">
+    <label>Confirm new password</label><input id="newPass2" type="password">
+    <button onclick="doResetPassword()">Reset Password</button>
+    <pre id="passwordRes"></pre>
+  </section>
 
-<!-- PROFILE -->
-<h3>4. My Profile</h3>
-<button onclick="doGetMe()">GET /me (with token)</button>
-<button onclick="doGetMeNoAuth()">GET /me (NO token - expect 401)</button>
-<pre id="meRes"></pre>
+  <section class="card">
+    <h2>Change Password</h2>
+    <label>Current password</label><input id="changeOldPass" type="password">
+    <label>New password</label><input id="changeNewPass" type="password">
+    <label>Confirm new password</label><input id="changeNewPass2" type="password">
+    <button onclick="doChangePassword()">Change Password</button>
+    <pre id="changePassRes"></pre>
+  </section>
 
-<hr>
+  <section class="card">
+    <h2>Admin / RBAC</h2>
+    <div class="muted">Requires ROLE_ADMIN.</div>
+    <button onclick="doAdminListUsers()">GET Users</button>
+    <label>User ID</label><input id="adminUserId">
+    <label>Role</label><select id="adminRole"><option>ROLE_USER</option><option>ROLE_ADMIN</option></select>
+    <button onclick="doAdminChangeRole()">PATCH Role</button>
+    <pre id="adminRes"></pre>
+  </section>
 
-<!-- UPLOAD -->
-<h3>5. Upload Resume</h3>
-<label>File:</label> <input type="file" id="resumeFile" accept=".pdf,.doc,.docx">
-<label>Description:</label> <input type="text" id="resumeDesc" placeholder="My main resume">
-<button onclick="doUploadResume()">Upload</button>
-<pre id="uploadRes"></pre>
-
-<hr>
-
-<!-- LIST -->
-<h3>6. List Resumes</h3>
-<button onclick="doListResumes()">List All</button>
-<pre id="listRes"></pre>
-
-<hr>
-
-<!-- ACTIVE -->
-<h3>7. Active Resume</h3>
-<button onclick="doGetActive()">Get Active</button>
-<pre id="activeRes"></pre>
-
-<hr>
-
-<!-- GET / ACTIVATE / DELETE / DOWNLOAD -->
-<h3>8. Resume by ID</h3>
-<label>ID:</label> <input type="number" id="resumeId" value="1">
-<button onclick="doGetResume()">Get</button>
-<button onclick="doActivateResume()">Activate</button>
-<button onclick="doDownloadResume()">Download</button>
-<button onclick="doDeleteResume()">Delete</button>
-<pre id="crudRes"></pre>
-
-<hr>
-
-<!-- INVALID FILE TEST -->
-<h3>9. Upload Invalid File (should reject)</h3>
-<button onclick="doUploadInvalid()">Upload fake .txt</button>
-<pre id="invalidRes"></pre>
-
-<hr>
-
-<!-- ML: ANALYZE RESUME -->
-<h3>10. LLM: Analyze Active Resume</h3>
-<p>Auto-fetches your active resume, sends it to the LLM for analysis.</p>
-<button onclick="doMlAnalyzeActive()">Analyze Active Resume with LLM</button>
-<pre id="mlAnalyzeRes"></pre>
-<hr>
-<h3>10b. LLM: Analyze Pasted Text</h3>
-<label>Or paste resume text manually:</label><br>
-<textarea id="mlResumeText" rows="6" cols="80" placeholder="Paste resume text here..."></textarea><br>
-<button onclick="doMlAnalyze()">Analyze with LLM</button>
-<pre id="mlAnalyzeRes2"></pre>
-
-<hr>
-
-<!-- ML: MATCH JOBS -->
-<h3>11. LLM: Match Jobs (upload PDF)</h3>
-<label>Resume PDF:</label> <input type="file" id="mlResumeFile" accept=".pdf">
-<label>Top N:</label> <input type="number" id="mlTopN" value="5" size="5">
-<button onclick="doMlMatch()">Match with LLM</button>
-<pre id="mlMatchRes"></pre>
-
-<hr>
-
-<!-- ML: HEALTH -->
-<h3>12. ML Service Health</h3>
-<button onclick="doMlHealth()">Check ML Service</button>
-<pre id="mlHealthRes"></pre>
-
-<hr>
-
-<!-- EMAIL VERIFICATION -->
-<h3>13. Email Verification</h3>
-<label>Token:</label> <input type="text" id="verifyToken" placeholder="Paste token from email or logs">
-<button onclick="doVerifyEmail()">Verify Email</button>
-<button onclick="doResendVerification()">Resend Verification Email</button>
-<pre id="verifyRes"></pre>
-
-<hr>
-
-<!-- FORGOT PASSWORD -->
-<h3>14. Forgot Password</h3>
-<label>Email:</label> <input type="email" id="forgotEmail">
-<button onclick="doForgotPassword()">Send Reset Link</button>
-<pre id="forgotRes"></pre>
-
-<hr>
-
-<!-- RESET PASSWORD -->
-<h3>15. Reset Password</h3>
-<label>Token:</label> <input type="text" id="resetToken" placeholder="Paste token from email">
-<label>New Password:</label> <input type="password" id="newPass">
-<label>Confirm:</label> <input type="password" id="newPass2">
-<button onclick="doResetPassword()">Reset Password</button>
-<pre id="resetRes"></pre>
-
-<hr>
-
-<!-- PROFILE PICTURE -->
-<h3>16. Profile Picture</h3>
-<label>Image (JPEG/PNG/WebP):</label> <input type="file" id="profilePic" accept="image/jpeg,image/png,image/webp">
-<button onclick="doUploadProfilePic()">Upload Picture</button>
-<button onclick="doGetProfilePic()">Get Picture</button>
-<button onclick="doDeleteProfilePic()">Delete Picture</button>
-<pre id="profilePicRes"></pre>
-<div id="profilePicPreview"></div>
-
-<hr>
-
-<!-- ADMIN -->
-<h3>17. Admin - List Users</h3>
-<button onclick="doAdminListUsers()">List All Users</button>
-<pre id="adminUsersRes"></pre>
-
-<hr>
-
-<h3>18. Admin - Change User Role</h3>
-<label>User ID:</label> <input type="number" id="adminUserId" value="1">
-<label>Role:</label>
-<select id="adminRole">
-    <option value="ROLE_USER">ROLE_USER</option>
-    <option value="ROLE_ADMIN">ROLE_ADMIN</option>
-</select>
-<button onclick="doAdminChangeRole()">Change Role</button>
-<pre id="adminRoleRes"></pre>
-
-<hr>
-
-<!-- LOG -->
-<h3>Request Log</h3>
-<div id="log"></div>
+  <section class="card wide">
+    <h2>Request Log</h2>
+    <button class="secondary" onclick="document.getElementById('log').textContent=''">Clear Log</button>
+    <pre id="log"></pre>
+  </section>
+</div>
+</main>
 
 <script>
-let accessToken = '';
-let refreshToken = '';
+let accessToken = localStorage.getItem('weathergpt_access_token') || '';
+let refreshToken = localStorage.getItem('weathergpt_refresh_token') || '';
 
-function base() {
-    return document.getElementById('baseUrl').value.replace(/\/+$/, '');
+const v = id => document.getElementById(id).value.trim();
+const show = (id, data) => document.getElementById(id).textContent =
+  typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+const base = () => v('baseUrl').replace(/\/$/, '');
+const log = (method, url, status) => {
+  const line = `[${new Date().toLocaleTimeString()}] ${method} ${url} -> ${status}`;
+  document.getElementById('log').textContent = line + '\n' + document.getElementById('log').textContent;
+};
+
+function renderTokens() {
+  document.getElementById('tokens').innerHTML = accessToken
+    ? `<br><b>Access token:</b> ${accessToken}<br><b>Refresh token:</b> ${refreshToken || '(not available)'}`
+    : '<br>No active tokens stored.';
 }
-
-function v(id) {
-    return document.getElementById(id).value.trim();
-}
-
-function show(id, data) {
-    document.getElementById(id).textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-}
-
-function logEntry(method, url, status) {
-    const el = document.getElementById('log');
-    el.innerHTML += '<div>' + new Date().toLocaleTimeString() + ' ' + method + ' ' + url + ' → ' + status + '</div>';
-    el.scrollTop = el.scrollHeight;
-}
-
-async function api(method, url, body, isFormData, resultId) {
-    const opts = { method: method, headers: {} };
-    if (accessToken && !url.includes('/auth/login') && !url.includes('/auth/register') && !url.includes('/auth/refresh')) {
-        opts.headers['Authorization'] = 'Bearer ' + accessToken;
-    }
-    if (body && !isFormData) {
-        opts.headers['Content-Type'] = 'application/json';
-        opts.body = JSON.stringify(body);
-    } else if (body) {
-        opts.body = body;
-    }
-    try {
-        const res = await fetch(base() + url, opts);
-        const text = await res.text();
-        let json;
-        try { json = JSON.parse(text); } catch (e) { json = text; }
-        logEntry(method, url, res.status);
-        show(resultId, json || text || 'HTTP ' + res.status + ' (empty)');
-        return json;
-    } catch (e) {
-        logEntry(method, url, 'ERR');
-        show(resultId, 'Error: ' + e.message);
-        return null;
-    }
-}
-
-async function checkHealth() {
-    const el = document.getElementById('statusText');
-    try {
-        el.textContent = 'Checking...';
-        console.log('Health check: POST ' + base() + '/api/auth/login');
-        const res = await fetch(base() + '/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: 'x@x.com', password: 'x' })
-        });
-        console.log('Health check response: HTTP ' + res.status);
-        el.textContent = 'Connected (HTTP ' + res.status + ')';
-    } catch (e) {
-        console.error('Health check failed:', e);
-        el.textContent = 'Failed: ' + e.message;
-    }
-}
-
 function setTokens(data) {
-    accessToken = data.accessToken;
-    refreshToken = data.refreshToken;
-    document.getElementById('tokens').innerHTML =
-        '<b>Access:</b> ' + accessToken + '<br><b>Refresh:</b> ' + refreshToken;
+  const payload = data?.data || data || {};
+  accessToken = payload.accessToken || accessToken;
+  refreshToken = payload.refreshToken || refreshToken;
+  localStorage.setItem('weathergpt_access_token', accessToken);
+  localStorage.setItem('weathergpt_refresh_token', refreshToken);
+  renderTokens();
+}
+function clearTokens() {
+  accessToken = ''; refreshToken = '';
+  localStorage.removeItem('weathergpt_access_token');
+  localStorage.removeItem('weathergpt_refresh_token');
+  renderTokens();
 }
 
-// AUTH
+async function request(method, path, body, resultId, auth=false) {
+  const headers = {};
+  if (auth && accessToken) headers.Authorization = 'Bearer ' + accessToken;
+  const opts = { method, headers };
+  if (body !== undefined && body !== null) {
+    headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  try {
+    const res = await fetch(base() + path, opts);
+    const text = await res.text();
+    let data = text;
+    try { data = text ? JSON.parse(text) : { message: 'Empty response' }; } catch (_) {}
+    log(method, path, res.status);
+    if (resultId) show(resultId, data);
+    return { res, data };
+  } catch (e) {
+    log(method, path, 'NETWORK ERROR');
+    if (resultId) show(resultId, 'Error: ' + e.message);
+    return { res:null, data:null };
+  }
+}
+
+async function checkConnection() {
+  const el = document.getElementById('statusText');
+  el.textContent = 'Checking...'; el.className = 'status muted';
+  const {res} = await request('POST', '/api/auth/login',
+    {email:'health-check@example.invalid', password:'invalid'}, null, false);
+  if (res) {
+    el.textContent = `Connected — HTTP ${res.status}`;
+    el.className = 'status ok';
+  } else {
+    el.textContent = 'Connection failed';
+    el.className = 'status bad';
+  }
+}
+
 async function doRegister() {
-    const data = await api('POST', '/api/auth/register', {
-        fullName: v('regName'), email: v('regEmail'), phoneNumber: v('regPhone'),
-        college: v('regCollege'), department: v('regDept'), graduationYear: v('regYear'),
-        password: v('regPass'), confirmPassword: v('regPass2')
-    }, false, 'regRes');
-    if (data && data.data && data.data.accessToken) setTokens(data.data);
+  const r = await request('POST','/api/auth/register',{
+    fullName:v('regName'), email:v('regEmail'), phoneNumber:v('regPhone'),
+    college:v('regCollege'), password:v('regPass'), confirmPassword:v('regPass2')
+  },'regRes');
+  if (r.data) setTokens(r.data);
 }
-
 async function doLogin() {
-    const data = await api('POST', '/api/auth/login', {
-        email: v('loginEmail'), password: v('loginPass')
-    }, false, 'loginRes');
-    if (data && data.data && data.data.accessToken) setTokens(data.data);
+  const r = await request('POST','/api/auth/login',{email:v('loginEmail'),password:v('loginPass')},'authRes');
+  if (r.data) setTokens(r.data);
 }
-
 async function doRefresh() {
-    if (!refreshToken) { show('refreshRes', 'Login first'); return; }
-    const data = await api('POST', '/api/auth/refresh', { refreshToken: refreshToken }, false, 'refreshRes');
-    if (data && data.data && data.data.accessToken) setTokens(data.data);
+  if (!refreshToken) return show('authRes','Login first: no refresh token stored.');
+  const r = await request('POST','/api/auth/refresh',{refreshToken},'authRes');
+  if (r.data) setTokens(r.data);
+}
+function doGetMe(){ return request('GET','/api/auth/me',null,'authRes',true); }
+async function doGetMeNoAuth(){
+  const saved=accessToken; accessToken='';
+  await request('GET','/api/auth/me',null,'authRes',false);
+  accessToken=saved;
 }
 
-async function doGetMe() {
-    await api('GET', '/api/auth/me', null, false, 'meRes');
+function getCurrentWeather() {
+  const location = encodeURIComponent(v('currentLocation'));
+  return request('GET',`/api/weather/current?location=${location}`,null,'currentRes');
+}
+function getForecast() {
+  const location=encodeURIComponent(v('forecastLocation'));
+  const days=v('forecastDays') || '7';
+  return request('GET',`/api/weather/forecast?location=${location}&days=${encodeURIComponent(days)}`,null,'forecastRes');
+}
+function sendChatQuery() {
+  const message = v('chatQuery');
+
+  if (!message) {
+    return show('chatRes', 'Enter a weather question.');
+  }
+
+  return request(
+    'POST',
+    '/api/chat/query',
+    { message: message },
+    'chatRes'
+  );
 }
 
-async function doGetMeNoAuth() {
-    const saved = accessToken;
-    accessToken = '';
-    await api('GET', '/api/auth/me', null, false, 'meRes');
-    accessToken = saved;
+function doVerifyEmail() {
+  const token=v('verifyToken');
+  if (!token) return show('verifyRes','Paste a verification token first.');
+  return request('POST','/api/auth/verify-email',{token},'verifyRes');
+}
+function doResendVerification() {
+  return request('POST','/api/auth/resend-verification',{},'verifyRes',true);
+}
+function doForgotPassword() {
+  return request('POST','/api/auth/forgot-password',{email:v('forgotEmail')},'passwordRes');
+}
+function doResetPassword() {
+  return request('POST','/api/auth/reset-password',{
+    token:v('resetToken'),newPassword:v('newPass'),confirmNewPassword:v('newPass2')
+  },'passwordRes');
+}
+function doChangePassword() {
+  return request('POST','/api/auth/change-password',{
+    currentPassword:v('changeOldPass'),newPassword:v('changeNewPass'),
+    confirmNewPassword:v('changeNewPass2')
+  },'changePassRes',true);
+}
+function doAdminListUsers(){ return request('GET','/api/admin/users',null,'adminRes',true); }
+function doAdminChangeRole() {
+  const id=v('adminUserId');
+  if (!id) return show('adminRes','Enter a user ID.');
+  return request('PATCH',`/api/admin/users/${encodeURIComponent(id)}/role`,
+    {role:v('adminRole')},'adminRes',true);
 }
 
-// RESUMES
-async function doUploadResume() {
-    const file = document.getElementById('resumeFile').files[0];
-    if (!file) { show('uploadRes', 'Select a file first'); return; }
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('description', v('resumeDesc'));
-    const data = await api('POST', '/api/resumes/upload', fd, true, 'uploadRes');
-    if (data && data.data && data.data.id) document.getElementById('resumeId').value = data.data.id;
-}
-
-async function doListResumes() {
-    await api('GET', '/api/resumes', null, false, 'listRes');
-}
-
-async function doGetActive() {
-    await api('GET', '/api/resumes/active', null, false, 'activeRes');
-}
-
-async function doGetResume() {
-    const id = v('resumeId');
-    if (!id) return;
-    await api('GET', '/api/resumes/' + id, null, false, 'crudRes');
-}
-
-async function doActivateResume() {
-    const id = v('resumeId');
-    if (!id) return;
-    await api('PUT', '/api/resumes/' + id + '/activate', null, false, 'crudRes');
-}
-
-async function doDownloadResume() {
-    const id = v('resumeId');
-    if (!id) return;
-    try {
-        const res = await fetch(base() + '/api/resumes/' + id + '/download', {
-            headers: { 'Authorization': 'Bearer ' + accessToken }
-        });
-        logEntry('GET', '/api/resumes/' + id + '/download', res.status);
-        if (res.ok) {
-            const blob = await res.blob();
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'resume-' + id + '.pdf';
-            a.click();
-            show('crudRes', 'Downloaded ' + blob.size + ' bytes');
-        } else {
-            const t = await res.text();
-            show('crudRes', 'Failed: ' + t);
-        }
-    } catch (e) {
-        show('crudRes', 'Error: ' + e.message);
-    }
-}
-
-async function doDeleteResume() {
-    const id = v('resumeId');
-    if (!id) return;
-    await api('DELETE', '/api/resumes/' + id, null, false, 'crudRes');
-}
-
-async function doUploadInvalid() {
-    const file = new File(['not a pdf'], 'test.txt', { type: 'text/plain' });
-    const fd = new FormData();
-    fd.append('file', file);
-    await api('POST', '/api/resumes/upload', fd, true, 'invalidRes');
-}
-
-// ML ENDPOINTS (call ML service directly)
-async function doMlHealth() {
-    try {
-        const res = await fetch('http://localhost:8000/health');
-        const data = await res.json();
-        logEntry('GET', '/health (ML)', res.status);
-        show('mlHealthRes', data);
-    } catch (e) {
-        logEntry('GET', '/health (ML)', 'ERR');
-        show('mlHealthRes', 'Error: ' + e.message + ' - Is ML service running?');
-    }
-}
-
-async function doMlAnalyzeActive() {
-    show('mlAnalyzeRes', 'Fetching active resume...');
-    document.querySelector('button[onclick="doMlAnalyzeActive()"]').disabled = true;
-    document.querySelector('button[onclick="doMlAnalyzeActive()"]').textContent = 'Working... (2-3 min on CPU)';
-    try {
-        // 1. Get active resume metadata
-        const metaRes = await fetch(base() + '/api/resumes/active', {
-            headers: { 'Authorization': 'Bearer ' + accessToken }
-        });
-        const meta = await metaRes.json();
-        if (!meta.data) { show('mlAnalyzeRes', 'No active resume found. Upload and activate one first.'); return; }
-        const resumeId = meta.data.id;
-        const fileName = meta.data.originalFileName;
-        logEntry('GET', '/api/resumes/active', metaRes.status);
-
-        // 2. Download the resume file
-        const fileRes = await fetch(base() + '/api/resumes/' + resumeId + '/download', {
-            headers: { 'Authorization': 'Bearer ' + accessToken }
-        });
-        logEntry('GET', '/api/resumes/' + resumeId + '/download', fileRes.status);
-        if (!fileRes.ok) { show('mlAnalyzeRes', 'Failed to download resume'); return; }
-        const blob = await fileRes.blob();
-        const file = new File([blob], fileName, { type: blob.type || 'application/pdf' });
-
-        // 3. Send to ML service
-        const fd = new FormData();
-        fd.append('file', file);
-        const mlRes = await fetch('http://localhost:8000/match-jobs-file?top_n=10', {
-            method: 'POST',
-            body: fd
-        });
-        logEntry('POST', '/match-jobs-file (ML)', mlRes.status);
-        const data = await mlRes.json();
-        show('mlAnalyzeRes', data);
-    } catch (e) {
-        logEntry('ML', 'analyze-active', 'ERR');
-        show('mlAnalyzeRes', 'Error: ' + e.message);
-    } finally {
-        document.querySelector('button[onclick="doMlAnalyzeActive()"]').disabled = false;
-        document.querySelector('button[onclick="doMlAnalyzeActive()"]').textContent = 'Analyze Active Resume with LLM';
-    }
-}
-
-async function doMlAnalyze() {
-    const text = document.getElementById('mlResumeText').value.trim();
-    if (!text) { show('mlAnalyzeRes2', 'Paste resume text first'); return; }
-    try {
-        const res = await fetch('http://localhost:8000/analyze-resume', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ resume_text: text })
-        });
-        const data = await res.json();
-        logEntry('POST', '/analyze-resume (ML)', res.status);
-        show('mlAnalyzeRes2', data);
-    } catch (e) {
-        logEntry('POST', '/analyze-resume (ML)', 'ERR');
-        show('mlAnalyzeRes2', 'Error: ' + e.message);
-    }
-}
-
-async function doMlMatch() {
-    const file = document.getElementById('mlResumeFile').files[0];
-    if (!file) { show('mlMatchRes', 'Select a PDF first'); return; }
-    const topN = v('mlTopN') || '5';
-    const fd = new FormData();
-    fd.append('file', file);
-    try {
-        const res = await fetch('http://localhost:8000/match-jobs-file?top_n=' + topN, {
-            method: 'POST',
-            body: fd
-        });
-        const data = await res.json();
-        logEntry('POST', '/match-jobs-file (ML)', res.status);
-        show('mlMatchRes', data);
-    } catch (e) {
-        logEntry('POST', '/match-jobs-file (ML)', 'ERR');
-        show('mlMatchRes', 'Error: ' + e.message);
-    }
-}
-
-// EMAIL VERIFICATION
-async function doVerifyEmail() {
-    const token = v('verifyToken');
-    if (!token) { show('verifyRes', 'Enter token first'); return; }
-    await api('GET', '/api/auth/verify-email?token=' + encodeURIComponent(token), null, false, 'verifyRes');
-}
-
-async function doResendVerification() {
-    await api('POST', '/api/auth/resend-verification', {}, false, 'verifyRes');
-}
-
-// FORGOT / RESET PASSWORD
-async function doForgotPassword() {
-    await api('POST', '/api/auth/forgot-password', { email: v('forgotEmail') }, false, 'forgotRes');
-}
-
-async function doResetPassword() {
-    await api('POST', '/api/auth/reset-password', {
-        token: v('resetToken'),
-        newPassword: v('newPass'),
-        confirmNewPassword: v('newPass2')
-    }, false, 'resetRes');
-}
-
-// PROFILE PICTURE
-async function doUploadProfilePic() {
-    const file = document.getElementById('profilePic').files[0];
-    if (!file) { show('profilePicRes', 'Select an image first'); return; }
-    const fd = new FormData();
-    fd.append('file', file);
-    const data = await api('POST', '/api/users/me/profile-picture', fd, true, 'profilePicRes');
-    if (data && data.success) doGetProfilePic();
-}
-
-async function doGetProfilePic() {
-    try {
-        const res = await fetch(base() + '/api/users/me/profile-picture', {
-            headers: { 'Authorization': 'Bearer ' + accessToken }
-        });
-        logEntry('GET', '/api/users/me/profile-picture', res.status);
-        if (res.ok) {
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            document.getElementById('profilePicPreview').innerHTML =
-                '<img src="' + url + '" style="max-width:200px;max-height:200px;border:1px solid #ccc;border-radius:8px;">';
-            show('profilePicRes', 'Picture loaded (' + blob.size + ' bytes)');
-        } else {
-            const t = await res.text();
-            show('profilePicRes', 'No picture or error: ' + t);
-            document.getElementById('profilePicPreview').innerHTML = '';
-        }
-    } catch (e) {
-        show('profilePicRes', 'Error: ' + e.message);
-    }
-}
-
-async function doDeleteProfilePic() {
-    await api('DELETE', '/api/users/me/profile-picture', null, false, 'profilePicRes');
-    document.getElementById('profilePicPreview').innerHTML = '';
-}
-
-// ADMIN
-async function doAdminListUsers() {
-    await api('GET', '/api/admin/users', null, false, 'adminUsersRes');
-}
-
-async function doAdminChangeRole() {
-    const userId = v('adminUserId');
-    const role = v('adminRole');
-    if (!userId) { show('adminRoleRes', 'Enter user ID'); return; }
-    await api('PATCH', '/api/admin/users/' + userId + '/role', { role: role }, false, 'adminRoleRes');
-}
-
-console.log('test.html loaded, running health check...');
-checkHealth();
+renderTokens();
+checkConnection();
 </script>
 </body>
 </html>

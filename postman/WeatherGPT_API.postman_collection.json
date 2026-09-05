@@ -1,0 +1,170 @@
+{
+  "info": {
+    "_postman_id": "weathergpt-api-v3",
+    "name": "WeatherGPT API",
+    "description": "WeatherGPT — Weather Intelligence and Disaster Decision-Support Platform\nOrganization: Ministry of Earth Sciences (MoES) / India Meteorological Department (IMD)\nTheme: Disaster Management\n\nPhases implemented:\n- Phase 1: Real-time weather and forecasts\n- Phase 2: Natural-language weather queries\n- Phase 3: Extreme weather alert foundation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080" },
+    { "key": "access_token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Phase 1 - Weather",
+      "item": [
+        {
+          "name": "Current Weather - Delhi",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/weather/current?location=Delhi",
+            "description": "Get real-time weather conditions for Delhi."
+          }
+        },
+        {
+          "name": "Current Weather - Mumbai",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/weather/current?location=Mumbai"
+          }
+        },
+        {
+          "name": "7-Day Forecast - Chennai",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/weather/forecast?location=Chennai&days=7"
+          }
+        },
+        {
+          "name": "16-Day Forecast - Bengaluru",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/weather/forecast?location=Bengaluru&days=16"
+          }
+        },
+        {
+          "name": "Missing Location - 400",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/weather/current",
+            "description": "Should return 400 - location is required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 2 - Natural Language Chat",
+      "item": [
+        {
+          "name": "Will it rain tomorrow in Delhi?",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/chat/query",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"message\": \"Will it rain tomorrow in Delhi?\"}" }
+          }
+        },
+        {
+          "name": "Weather in Mumbai this week",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/chat/query",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"message\": \"What's the weather in Mumbai this week?\"}" }
+          }
+        },
+        {
+          "name": "Temperature query - Chennai",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/chat/query",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"message\": \"How hot will it be in Chennai tomorrow?\"}" }
+          }
+        },
+        {
+          "name": "Unsupported query",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/chat/query",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"message\": \"What is the capital of India?\"}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phase 3 - Extreme Weather Alerts",
+      "item": [
+        {
+          "name": "Get Alerts - Delhi",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/alerts?location=Delhi",
+            "description": "Get active extreme weather alerts for Delhi.\n\nExpected response includes:\n- officialProviderActive: false (no official provider configured yet)\n- providerStatus: message directing to mausam.imd.gov.in\n- alerts: [] (NoOpAlertProvider returns no fabricated alerts)"
+          }
+        },
+        {
+          "name": "Get Alerts - Mumbai",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/alerts?location=Mumbai"
+          }
+        },
+        {
+          "name": "Get Alerts - Missing Location (400)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/alerts",
+            "description": "Should return 400 - location is required."
+          }
+        },
+        {
+          "name": "Get Alerts - Unknown Location (404)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/alerts?location=UnknownCityXYZ123",
+            "description": "Should return 404 - location not found."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"test@weathergpt.com\",\n  \"phoneNumber\": \"9876543210\",\n  \"password\": \"Secure@1234\",\n  \"confirmPassword\": \"Secure@1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@weathergpt.com\",\n  \"password\": \"Secure@1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          }
+        }
+      ]
+    }
+  ]
+}

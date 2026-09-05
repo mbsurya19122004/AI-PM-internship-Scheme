@@ -12,11 +12,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.internshipplatform</groupId>
-    <artifactId>internship-platform-backend</artifactId>
+    <groupId>com.weathergpt</groupId>
+    <artifactId>weathergpt-backend</artifactId>
     <version>1.0.0</version>
-    <name>Internship Platform Backend</name>
-    <description>Enterprise Java backend for the Internship &amp; Job Recommendation Platform</description>
+    <name>WeatherGPT Backend</name>
+    <description>Spring Boot backend for WeatherGPT — an intelligent weather intelligence and disaster decision-support platform aligned with MoES/IMD and the Disaster Management theme.</description>
 
     <properties>
         <java.version>17</java.version>
