@@ -8,7 +8,6 @@ A conversational weather intelligence backend built with Java 17 and Spring Boot
 [![Tests](https://img.shields.io/badge/tests-JUnit-orange?logo=junit5)](https://junit.org/)
 [![License](https://img.shields.io/badge/license-internal-lightgrey)](https://choosealicense.com/)
 
-> Badges: replace the artifact URLs with your repo/CI/coverage links once they exist.
 
 ## Mission framing: MoES / IMD
 
