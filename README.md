@@ -1,215 +1,251 @@
 # WeatherGPT
 
-An intelligent conversational weather intelligence and disaster decision-support platform aligned with the **Ministry of Earth Sciences (MoES) / India Meteorological Department (IMD)** mission and the **Disaster Management** theme.
+A conversational weather intelligence backend built with Java 17 and Spring Boot 3.2. WeatherGPT is aligned with the **Ministry of Earth Sciences (MoES) / India Meteorological Department (IMD)** mission and the **Disaster Management** theme.
 
-WeatherGPT makes meteorological information easier to access and understand through natural-language interactions, real-time weather data, and early warning architecture.
+[![Build](https://img.shields.io/badge/build-Maven-informational?logo=apache-maven)](https://maven.apache.org/)
+[![Java](https://img.shields.io/badge/java-17-blue?logo=openjdk)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/spring%20boot-3.2-black?logo=spring-boot)](https://spring.io/projects/spring-boot)
+[![Tests](https://img.shields.io/badge/tests-JUnit-orange?logo=junit5)](https://junit.org/)
+[![License](https://img.shields.io/badge/license-internal-lightgrey)](https://choosealicense.com/)
+
+> Badges: replace the artifact URLs with your repo/CI/coverage links once they exist.
+
+## Mission framing: MoES / IMD
+
+WeatherGPT is built with the **Ministry of Earth Sciences (MoES)** and the **India Meteorological Department (IMD)** mission in view: make meteorological information more accessible, more understandable, and more actionable for the people and systems that need it.
+
+The project is also aligned with the **Disaster Management** theme. It is not an official warning authority, but it is designed to support early-awareness workflows by turning weather data into plain-language answers, location-based alerts, and clearly labelled advisories that can feed dashboards, monitoring tools, and decision-support processes.
+
+Where official government warnings exist, the system should surface them through a verified source. Where they do not yet exist in the system, WeatherGPT should say so plainly rather than inventing a warning.
+
+## Disaster-management use cases
+
+- **Early awareness, not final authority.** Residents, coordinators, and frontline teams can use the chat and alert endpoints to get a quick natural-language read on current conditions and likely weather changes for a place they care about.
+- **Situational awareness before and during an event.** Multi-day forecasts and current conditions support planning for rain, heat, wind, and other conditions that commonly matter in disaster-management workflows.
+- **Clear separation between official and automated information.** The `informationClass` field on alerts and advisories is meant to make it harder for automated content to be mistaken for a government warning.
+- **Graceful absence of official data.** When no official alert provider is configured, the alerts endpoint returns an empty list and tells consumers where to check instead. That is intentional: the system prefers a truthful empty response over a fabricated warning.
+
+A short way to think about the product: WeatherGPT helps people ask weather questions in their own language and get grounded answers fast, while keeping official warnings and automated advisories visually and semantically distinct.
+
+<!-- Quick-start -->
+
+```bash
+# 1. Start the backend
+cd backend
+export JWT_SECRET=<base64-secret-at-least-256-bits>
+mvn spring-boot:run
+
+# 2. Try it from another terminal
+curl -s "http://localhost:8080/api/weather/current?location=Delhi" | jq .
+curl -s "http://localhost:8080/api/weather/forecast?location=Mumbai&days=7" | jq .
+curl -s -X POST "http://localhost:8080/api/chat/query" -H "Content-Type: application/json" -d '{"message":"Will it rain tomorrow in Chennai?"}' | jq .
+curl -s "http://localhost:8080/api/alerts?location=Delhi" | jq .
+```
+
+_Tip: if you want to reuse one city, replace `Delhi` / `Mumbai` / `Chennai` in all four commands._
+
+It turns natural-language weather questions, real-time conditions, multi-day forecasts, and extreme-weather alerts into structured, reproducible API responses — without fabricating official government warnings.
 
 ---
 
-## Organization
+## What it does
 
-| Field        | Value                                     |
-| ------------ | ----------------------------------------- |
-| Organization | Ministry of Earth Sciences (MoES)         |
-| Department   | India Meteorological Department (IMD)     |
-| Category     | Software                                  |
-| Theme        | Disaster Management                       |
-
----
-
-## IMPLEMENTED
-
-### Phase 1 — Real-Time Weather Intelligence
-
-- Real-time weather conditions by location
-- Multi-day weather forecasts (up to 16 days)
-- Location geocoding (human-readable name → coordinates)
-- Open-Meteo API integration (free, no API key required)
-- Weather provider abstraction (pluggable, provider-independent)
-- Normalized weather DTOs (raw provider payloads never exposed)
-- WMO weather code normalization with human-readable descriptions
-
-**Endpoints:**
-
-```
-GET /api/weather/current?location={location}
-GET /api/weather/forecast?location={location}&days={1-16}
-```
-
-### Phase 2 — Natural-Language Weather Queries
-
-- Deterministic natural-language weather query interpreter
-- Supported intents: CURRENT\_WEATHER, FORECAST, RAIN\_QUERY, TEMPERATURE\_QUERY, WIND\_QUERY, HUMIDITY\_QUERY, GENERAL\_WEATHER, UNSUPPORTED
-- Supported time references: NOW, TODAY, TOMORROW, NEXT\_DAY, THIS\_WEEK, THIS\_WEEKEND
-- Conversational response generation grounded in real provider data
-- Simple data-driven automated advisories (clearly labelled, never presented as official warnings)
-- Query interpreter interface supporting future LLM-based implementation
-
-**Endpoint:**
-
-```
-POST /api/chat/query
-Body: { "message": "Will it rain tomorrow in Delhi?" }
-```
-
-### Phase 3 — Extreme Weather Alert Foundation
-
-- `WeatherAlertProvider` interface (pluggable, supports multiple future providers)
-- Normalized `WeatherAlertDto` with all standard alert fields
-- `AlertType` enum (RAIN, HEAVY\_RAIN, THUNDERSTORM, CYCLONE, FLOOD, LANDSLIDE, etc.)
-- `AlertSeverity` enum (LOW, MODERATE, SEVERE, EXTREME, UNKNOWN)
-- `AlertInformationClass` enum — **mandatory classification**: OFFICIAL\_WARNING, AUTOMATED\_ADVISORY, OBSERVATION
-- `NoOpAlertProvider` — truthful placeholder that returns no alerts and correctly identifies itself as non-official
-- `AlertService` — provider orchestration with classification enforcement
-- Safety guard: non-official providers cannot produce OFFICIAL\_WARNING alerts
-- Provider failure handling with graceful degradation
-- Location-based alert query endpoint
-
-**Endpoint:**
-
-```
-GET /api/alerts?location={location}
-```
-
-**Response always includes:**
-- `officialProviderActive` — whether a verified official source is configured
-- `providerStatus` — human-readable provider status message
-- `informationClass` on each alert — OFFICIAL\_WARNING / AUTOMATED\_ADVISORY / OBSERVATION
-
-### Authentication and Security (Supporting Infrastructure)
-
-- User registration and login
-- JWT access and refresh tokens
-- Token versioning (invalidates all tokens on password change)
-- Password reset (email token, 15-minute expiry)
-- Email verification
-- Account lockout after 5 failed login attempts
-- Rate limiting on password reset requests
-- RBAC (ROLE\_USER, ROLE\_ADMIN)
-- Admin user management and role assignment
-- Security event audit logging
-- Input sanitization (XSS prevention)
+- **Real-time weather** for a human-readable location name
+- **Multi-day forecasts** (up to 16 days)
+- **Natural-language weather queries** with a deterministic interpreter
+- **Extreme-weather alert foundation** with mandatory information classification (`OFFICIAL_WARNING` / `AUTOMATED_ADVISORY` / `OBSERVATION`)
+- **Authentication, authorization, and account lifecycle** — registration, login, JWT refresh, password reset, email verification, lockout, and RBAC
 
 ---
 
-## PLANNED (NOT YET IMPLEMENTED)
+## API at a glance
 
-- Official IMD / NDMA alert provider integration
-- Conversation context and persistence
-- LLM-based query understanding (optional enhancement, deterministic remains active)
-- Multilingual support (Indian languages)
-- Voice interaction (speech-to-text / text-to-speech)
-- Historical weather and climate analytics
-- Weather risk assessment engine (Phase 4)
-- Sector-specific decision support: agriculture, aviation, marine, disaster preparedness
-- NWP / GFS / WRF numerical weather prediction model integration
-- Real-time event ingestion (WebSocket / MQTT)
+Base URL: `http://localhost:8080`
+
+All responses use the same envelope:
+
+```json
+{
+  "success": true,
+  "message": "...",
+  "data": {}
+}
+```
+
+### Weather
+
+```bash
+# Current conditions
+curl "http://localhost:8080/api/weather/current?location=Delhi"
+
+# Multi-day forecast
+curl "http://localhost:8080/api/weather/forecast?location=Mumbai&days=7"
+```
+
+### Natural-language chat
+
+```bash
+curl -X POST "http://localhost:8080/api/chat/query" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Will it rain tomorrow in Chennai?"}'
+```
+
+### Extreme-weather alerts
+
+```bash
+curl "http://localhost:8080/api/alerts?location=Delhi"
+```
+
+Until an official alert provider is wired in, `/api/alerts` returns an empty alert list with a truthful `providerStatus` and `officialProviderActive: false`. It does not invent warnings.
+
+### Authentication
+
+```bash
+# Register
+curl -X POST "http://localhost:8080/api/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{ "fullName": "Jane Doe", "email": "jane@example.com", "phoneNumber": "9876543210", "password": "Secure@1234", "confirmPassword": "Secure@1234" }'
+
+# Login
+curl -X POST "http://localhost:8080/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "jane@example.com", "password": "Secure@1234" }'
+
+# Refresh token
+curl -X POST "http://localhost:8080/api/auth/refresh" \
+  -H "Content-Type: application/json" \
+  -d '{ "refreshToken": "<token>" }'
+
+# Current user
+curl "http://localhost:8080/api/auth/me" \
+  -H "Authorization: Bearer <token>"
+```
+
+Password reset, email verification, and admin user-management endpoints also exist. See the project’s endpoint reference for the full list.
 
 ---
 
 ## Architecture
 
 ```
-WeatherController    ChatController     AlertController
-        ↓                   ↓                  ↓
-WeatherService      WeatherQueryService    AlertService
-        ↓              ↓          ↓            ↓
-GeocodingProvider  QueryInterpreter  ResponseGenerator  WeatherAlertProvider
-        ↓               ↓                           ↓
-OpenMeteoGeocodingProvider  DeterministicInterpreter  NoOpAlertProvider (placeholder)
-        ↓
-  OpenMeteoWeatherProvider
+WeatherController      ChatController       AlertController
+     ↓                      ↓                     ↓
+WeatherService      WeatherQueryService      AlertService
+     ↓                    ↓        ↓              ↓
+GeocodingProvider   QueryInterpreter  ResponseGenerator   WeatherAlertProvider
+     ↓                   ↓                          ↓
+OpenMeteoGeocodingProvider  DeterministicInterpreter   NoOpAlertProvider (placeholder)
+     ↓
+OpenMeteoWeatherProvider
 ```
 
-### Key Architectural Rules
+A few hard rules shape the code:
 
-- Controllers are thin — no business logic, no provider-specific parsing
-- Services orchestrate business logic
-- External APIs are isolated behind provider interfaces
-- Raw provider payloads are never exposed to API clients
-- Query interpretation is separate from weather data retrieval
-- Weather responses are grounded in actual provider data
-- Automated advisories are never presented as official government warnings
-- No alert is fabricated — if no official provider is configured, the endpoint returns an empty list with a truthful provider status
-
----
-
-## Tech Stack
-
-| Component          | Technology                      |
-| ------------------ | ------------------------------- |
-| Backend            | Java 17, Spring Boot 3.2        |
-| Database           | H2 (in-memory, dev); swap to PostgreSQL for production |
-| Weather API        | Open-Meteo (free, no API key)   |
-| Geocoding API      | Open-Meteo Geocoding (free)     |
-| Authentication     | JWT (JJWT 0.12)                 |
-| Build              | Maven                           |
+- Controllers are thin. No business logic, no provider-specific parsing in request handlers.
+- External APIs are isolated behind provider interfaces.
+- Raw provider payloads are never exposed to API clients.
+- Query interpretation is separated from weather data retrieval.
+- Responses are grounded in real provider data.
+- Automated advisories are never presented as official government warnings.
+- If no official provider is configured, the alerts endpoint returns an empty list and tells the consumer where to look instead.
 
 ---
 
-## Running Locally
+## Data sources
+
+| Concern | Source |
+| --- | --- |
+| Current weather + forecast | Open-Meteo |
+| Geocoding | Open-Meteo Geocoding |
+| Alerts (today) | Placeholder `NoOpAlertProvider` |
+
+Open-Meteo is free and does not require an API key, which keeps local development simple. The provider layer is pluggable, so other sources can be added later without changing controllers or business logic.
+
+---
+
+## Alert classification
+
+Every alert or advisory includes an `informationClass` field. Consumers should present this to end users.
+
+| Class | Meaning |
+| --- | --- |
+| `OFFICIAL_WARNING` | Originates from a verified government source such as IMD or NDMA |
+| `AUTOMATED_ADVISORY` | System-generated from weather thresholds. Not a government warning |
+| `OBSERVATION` | Factual statement from observed conditions. Not a warning |
+
+WeatherGPT does not fabricate official warnings. With only the placeholder provider active, alert responses are intentionally empty and transparent about that fact.
+
+---
+
+## Tech stack
+
+| Layer | Choice |
+| --- | --- |
+| Language / framework | Java 17, Spring Boot 3.2 |
+| Build | Maven |
+| Database (dev) | H2 in-memory |
+| Database (production) | Swap to PostgreSQL |
+| Authentication | JWT (JJWT 0.12) |
+| Weather API | Open-Meteo |
+| Geocoding API | Open-Meteo Geocoding |
+
+---
+
+## Running locally
 
 ```bash
 cd backend
-export JWT_SECRET=<base64-encoded-secret-min-256-bits>
+export JWT_SECRET=<base64-encoded-secret, at least 256 bits>
 mvn spring-boot:run
 ```
 
-**Test the API:**
+Default local settings come from `backend/src/main/resources/application.properties`. The app runs on port `8080`. Out of the box, authentication, email, and SMTP are configured to work in a development posture, so the backend can start without external mail infrastructure.
+
+If you want, you can override the weather and geocoding base URLs through environment variables:
 
 ```bash
-# Current weather
-curl "http://localhost:8080/api/weather/current?location=Delhi"
-
-# 7-day forecast
-curl "http://localhost:8080/api/weather/forecast?location=Mumbai&days=7"
-
-# Natural-language query
-curl -X POST "http://localhost:8080/api/chat/query" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Will it rain tomorrow in Chennai?"}'
-
-# Extreme weather alerts
-curl "http://localhost:8080/api/alerts?location=Delhi"
+export WEATHER_API_BASE_URL=https://api.open-meteo.com/v1
+export GEOCODING_API_BASE_URL=https://geocoding-api.open-meteo.com/v1
 ```
 
 ---
 
-## Tests
+## Testing
 
 ```bash
 cd backend
 mvn clean test
 ```
 
-Current status: **108 tests, 0 failures, 0 errors**
+The project currently has a substantial Spring Boot test suite covering weather flow, chat query interpretation, alerts, controllers, token handling, and provider behavior.
 
 ---
 
-## Important: Alert Information Classification
+## Roadmap
 
-Every alert or advisory returned by the API includes an `informationClass` field. Consumers **must** present this to users:
+**Implemented**
 
-| Class                 | Meaning                                                                 |
-| --------------------- | ----------------------------------------------------------------------- |
-| `OFFICIAL_WARNING`    | Originates from a verified government source (e.g. IMD, NDMA)          |
-| `AUTOMATED_ADVISORY`  | System-generated from weather data thresholds. Not a government warning |
-| `OBSERVATION`         | Factual statement from observed conditions. Not a warning               |
+- Real-time weather and multi-day forecasts
+- Deterministic natural-language weather query interpretation
+- Conversational weather responses grounded in live provider data
+- Alert classification framework and placeholder provider with safety guards
+- JWT-based authentication with refresh tokens, password reset, email verification, account lockout, and RBAC
+- Admin user and role management
 
-**WeatherGPT never fabricates official government warnings.**
+**Planned**
 
-Until a real official alert provider is integrated, `GET /api/alerts` returns an empty alert list with `officialProviderActive: false` and a `providerStatus` message directing users to check `mausam.imd.gov.in`.
+- Official IMD / NDMA alert provider integration
+- Conversation persistence and context
+- Optional LLM-based query understanding alongside the deterministic interpreter
+- Multilingual support for Indian languages
+- Voice interaction
+- Historical weather and climate analytics
+- Weather risk assessment and sector-specific decision support
+- Real-time event ingestion via WebSocket / MQTT
+- NWP / GFS / WRF model integration
 
 ---
 
-## Future Roadmap
+## Important caveat
 
-1. Official extreme weather alert provider integration (IMD / CAP feeds)
-2. Disaster-oriented location-based alert intelligence
-3. Conversation persistence and context
-4. Multilingual support (Hindi, Bengali, Tamil, Telugu, and other Indian languages)
-5. Voice interaction
-6. Historical climate analytics
-7. NWP/GFS/WRF integration
-8. Sector-specific decision support (agriculture, aviation, marine, disaster preparedness)
-9. Scalable real-time ingestion (MQTT / WebSocket)
+WeatherGPT is a decision-support tool, not an official warning authority. Until a verified government alert source is integrated, treat automated advisories as informational and route official warnings through the appropriate government channels.
